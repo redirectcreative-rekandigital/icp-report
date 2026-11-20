@@ -1,0 +1,69 @@
+<script setup lang="ts">
+import type { ChartData, ChartOptions } from 'chart.js';
+import { computed } from 'vue';
+import { Bar } from 'vue-chartjs';
+import { LEVEL_COLORS, segmentLabels } from '@/components/charts/setup';
+import { LEVELS } from '@/lib/cefr';
+import type { Level } from '@/lib/cefr';
+
+/** "Sebaran level per grade" — stacked vertical bars, student counts (PRD-06 §3.3). */
+const props = defineProps<{
+    grades: { grade: number; levels: Record<Level, number> }[];
+}>();
+
+const data = computed<ChartData<'bar'>>(() => ({
+    labels: props.grades.map((g) => `Kelas ${g.grade}`),
+    datasets: LEVELS.map((l) => ({
+        label: l,
+        data: props.grades.map((g) => g.levels[l]),
+        backgroundColor: LEVEL_COLORS[l].bg,
+        borderColor: '#FFFFFF',
+        borderWidth: { top: 1, bottom: 1 },
+        borderSkipped: false,
+        borderRadius: 4,
+        maxBarThickness: 48,
+    })),
+}));
+
+const options: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { precision: 0 },
+            grid: { color: '#EEF2F7' },
+            title: { display: true, text: 'Jumlah siswa' },
+        },
+    },
+    plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+            callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.raw} siswa`,
+            },
+        },
+    },
+};
+
+const plugins = [
+    segmentLabels(
+        LEVELS.map((l) => LEVEL_COLORS[l].fg),
+        16,
+    ),
+];
+</script>
+
+<template>
+    <div class="h-72">
+        <Bar
+            :data="data"
+            :options="options"
+            :plugins="plugins"
+            aria-label="Sebaran level per jenjang"
+            role="img"
+        />
+    </div>
+</template>
