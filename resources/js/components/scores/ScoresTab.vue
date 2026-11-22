@@ -330,19 +330,24 @@ defineExpose({ pendingCount: autosave.pendingCount });
 <template>
     <!-- Header actions -->
     <div class="mb-4 flex flex-wrap items-center gap-2">
-        <span
-            class="rounded-full bg-kpi-icon px-3 py-1 text-sm font-semibold text-primary"
-            >Level harapan: {{ expected }}</span
-        >
-        <SaveIndicator
+        <!-- Tour anchor on the wrapper: SaveIndicator is empty (0×0) while idle. -->
+        <div
+            class="flex flex-wrap items-center gap-2"
             data-tour="save-indicator"
-            :saving="autosave.saving.value"
-            :pending="autosave.pendingCount.value"
-            :failed="autosave.failedCount.value"
-            :online="autosave.online.value"
-            :saved-at="autosave.savedAt.value"
-            @retry="autosave.retryFailed"
-        />
+        >
+            <span
+                class="rounded-full bg-kpi-icon px-3 py-1 text-sm font-semibold text-primary"
+                >Level harapan: {{ expected }}</span
+            >
+            <SaveIndicator
+                :saving="autosave.saving.value"
+                :pending="autosave.pendingCount.value"
+                :failed="autosave.failedCount.value"
+                :online="autosave.online.value"
+                :saved-at="autosave.savedAt.value"
+                @retry="autosave.retryFailed"
+            />
+        </div>
         <div class="ml-auto flex flex-wrap gap-2">
             <Button
                 v-if="!locked"

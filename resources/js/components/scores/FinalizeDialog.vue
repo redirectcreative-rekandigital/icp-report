@@ -80,6 +80,7 @@ function finalize(): void {
         v-model:open="open"
         :title="`Finalkan kelas ${classroom.name}`"
         tour="flow-finalkan"
+        :tour-ready="!loading && incomplete !== null"
     >
         <div v-if="loading" class="flex justify-center py-6"><Spinner /></div>
 

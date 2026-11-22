@@ -130,11 +130,22 @@ describe('anchor resolution (§3.2, D8)', () => {
         expect(resolveAnchor({ anchor: 'gone' })).toBeUndefined();
     });
 
-    it('buildSteps maps missing anchors to element: undefined (centred step, D8)', () => {
+    it('buildSteps resolves anchors lazily; missing → null (centred step, D8)', () => {
         document.body.innerHTML = '';
         const steps = buildSteps('log');
-        expect(steps[0].element).toBeUndefined();
+        const resolve = steps[0].element as () => Element | null;
+        expect(resolve()).toBeNull();
         expect(steps[0].popover).toMatchObject({ title: 'Filter' });
+
+        // Content rendered after the tour started (dialog spinner → summary) is still found.
+        document.body.innerHTML = '<div data-tour="log-filters"></div>';
+        expect(resolve()).toBe(
+            document.querySelector('[data-tour="log-filters"]'),
+        );
+    });
+
+    it('buildSteps leaves anchorless steps without element', () => {
+        expect(buildSteps('kelas-riwayat')[1].element).toBeUndefined();
     });
 });
 

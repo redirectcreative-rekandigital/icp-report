@@ -332,6 +332,10 @@
     border-color: var(--primary);
     color: var(--primary-foreground);
 }
+/* Step 1: driver.js only disables "Sebelumnya"; PRD-TUTOR §3.1 hides it. */
+.driver-popover.icp-tour .driver-popover-prev-btn.driver-popover-btn-disabled {
+    display: none;
+}
 .driver-popover.icp-tour .driver-popover-footer button:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;

@@ -99,19 +99,20 @@ export function resolveAnchor(
 }
 
 export function buildSteps(id: TourId): DriveStep[] {
-    return tours[id].steps.map((s) => {
-        const element = resolveAnchor(s);
-
-        return {
-            element,
-            popover: {
-                title: s.title,
-                description: s.text,
-                side: element ? s.side : undefined,
-                align: 'start',
-            },
-        };
-    });
+    return tours[id].steps.map((s) => ({
+        // Resolved when the step is shown, not when the tour starts: dialog content changes
+        // under the tour (spinner → summary, running → done). Nothing visible → centred (D8).
+        element:
+            s.anchor || s.mobileAnchor
+                ? ((() => resolveAnchor(s) ?? null) as () => Element)
+                : undefined,
+        popover: {
+            title: s.title,
+            description: s.text,
+            side: s.side,
+            align: 'start',
+        },
+    }));
 }
 
 function hookRouter(): void {
@@ -191,8 +192,11 @@ export function autoStartTour(id: TourId, opts: AutoOptions = {}): () => void {
                     '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]',
                 ) !== null);
         const waiting =
-            opts.waitFor !== undefined &&
-            !document.querySelector(`[data-tour="${opts.waitFor}"]`);
+            (opts.waitFor !== undefined &&
+                !document.querySelector(`[data-tour="${opts.waitFor}"]`)) ||
+            // Dialogs load their content after opening: wait until any step has its element.
+            (opts.inDialog === true &&
+                !tours[id].steps.some((s) => resolveAnchor(s)));
 
         if ((busy || waiting) && tries < 6) {
             timer = setTimeout(attempt, 1000);

@@ -179,6 +179,7 @@ async function cancel(): Promise<void> {
         "
         :dismissible="state?.status !== 'running'"
         tour="flow-cetak-semua"
+        :tour-ready="state !== null || error !== null"
     >
         <div class="space-y-3 text-sm" aria-live="polite">
             <template v-if="!state && !error">

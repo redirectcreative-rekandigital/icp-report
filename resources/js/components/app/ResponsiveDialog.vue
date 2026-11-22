@@ -25,18 +25,26 @@ import {
 import type { TourId } from '@/tours/types';
 
 /** Dialog on ≥ 768 px, bottom sheet below (PRD-08 §3). */
-const props = defineProps<{
-    title: string;
-    description?: string;
-    dismissible?: boolean;
-    /** Flow tutorial: "?" next to the title + auto-start once (PRD-TUTOR D5). */
-    tour?: TourId;
-}>();
+const props = withDefaults(
+    defineProps<{
+        title: string;
+        description?: string;
+        dismissible?: boolean;
+        /** Flow tutorial: "?" next to the title + auto-start once (PRD-TUTOR D5). */
+        tour?: TourId;
+        /** False while the dialog content is still loading: the tutorial waits for it. */
+        tourReady?: boolean;
+    }>(),
+    { tourReady: true },
+);
 
 const open = defineModel<boolean>('open', { required: true });
 const isDesktop = useMediaQuery('(min-width: 768px)');
 
-useDialogTour(() => props.tour, open);
+useDialogTour(
+    () => props.tour,
+    () => open.value && props.tourReady,
+);
 
 /** Clicks on the tutorial popover must not close the dialog; nor may Esc meant for the tour. */
 function onOutside(e: Event) {
