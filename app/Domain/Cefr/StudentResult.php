@@ -2,35 +2,30 @@
 
 namespace App\Domain\Cefr;
 
-/** Result of CefrCalculator for one student. Percentages are unrounded. */
+/** Result of CefrCalculator for one student. */
 final class StudentResult
 {
     /**
-     * @param  array<string, float|null>  $percent  skill => %
-     * @param  array<string, string|null>  $level  skill => level
+     * @param  array<string, string|null>  $level  skill => band
      */
     public function __construct(
-        public readonly array $percent,
         public readonly array $level,
-        public readonly ?float $overallPercent,
-        public readonly ?string $overallLevel,
-        public readonly string $status, // incomplete | below | meeting | above
+        public readonly ?float $total, // sum of the four skills, null while incomplete
+        public readonly ?string $overallLevel, // band of the total
         public readonly ?string $strongest, // skill key, null when incomplete
     ) {}
 
     public function isComplete(): bool
     {
-        return $this->status !== 'incomplete';
+        return $this->total !== null;
     }
 
     public function toArray(): array
     {
         return [
-            'percent' => $this->percent,
             'level' => $this->level,
-            'overall_percent' => $this->overallPercent,
+            'total' => $this->total,
             'overall_level' => $this->overallLevel,
-            'status' => $this->status,
             'strongest' => $this->strongest,
         ];
     }

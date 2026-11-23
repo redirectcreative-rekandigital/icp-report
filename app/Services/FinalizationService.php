@@ -26,20 +26,22 @@ class FinalizationService
     ) {}
 
     /**
-     * Active students whose four scores are not all filled in.
+     * Active students whose four scores (and, in grade 6, NatGeo level) are not all filled in.
      *
      * @return list<array{enrollment_id: int, name: string, missing: list<string>}>
      */
     public function incomplete(Classroom $classroom): array
     {
+        $fields = ['listening', 'reading', 'writing', 'speaking', ...($classroom->usesNatGeo() ? ['natgeo_level'] : [])];
+
         return $classroom->enrollments()->with(['student', 'score'])->get()
             ->filter(fn (Enrollment $e) => $e->student->is_active)
             ->map(fn (Enrollment $e) => [
                 'enrollment_id' => $e->id,
                 'name' => $e->student->name,
-                'missing' => collect(['listening', 'reading', 'writing', 'speaking'])
+                'missing' => collect($fields)
                     ->filter(fn ($s) => $e->score?->{$s} === null)
-                    ->map(fn ($s) => ucfirst($s))->values()->all(),
+                    ->map(fn ($s) => $s === 'natgeo_level' ? 'NatGeo' : ucfirst($s))->values()->all(),
             ])
             ->filter(fn ($r) => $r['missing'] !== [])
             ->values()->all();
@@ -66,7 +68,7 @@ class FinalizationService
 
             $config = $this->scores->config($classroom);
             $snapshot = $this->snapshot($classroom, $config->toArray());
-            $comments = array_column($snapshot['level_meta'], 'overall_comment', 'level');
+            $comments = $snapshot['band_comments'];
             $withStrongest = (bool) ($snapshot['report_layout']['sections']['strongest_skill'] ?? true);
 
             $finalization = Finalization::query()->create([
@@ -90,16 +92,15 @@ class FinalizationService
                     'term_id' => $classroom->term_id,
                     'student_id' => $e->student_id,
                     'grade' => $classroom->grade,
-                    'overall_pct' => $r->overallPercent,
+                    'total' => $r->total,
                     'overall_level' => $r->overallLevel,
-                    'status' => $r->status,
+                    'natgeo_level' => $classroom->usesNatGeo() ? $e->score?->natgeo_level : null,
                     'strongest_skill' => $r->strongest,
                     'comment_final' => CefrCalculator::reportComment($r, $e->student->name, $e->score?->teacher_comment, $comments, $withStrongest),
                     'is_current' => true,
                 ];
                 foreach (['listening', 'reading', 'writing', 'speaking'] as $s) {
                     $row[$s] = $raw[$s];
-                    $row["{$s}_pct"] = $r->percent[$s];
                     $row["{$s}_level"] = $r->level[$s];
                 }
                 FinalResult::query()->create($row);
@@ -171,8 +172,9 @@ class FinalizationService
 
         return [
             'scoring' => $config,
-            'level_meta' => LevelMeta::query()->orderBy('sort')->get(['level', 'short_name', 'name', 'cambridge', 'overall_comment', 'color_hex'])->toArray(),
+            'level_meta' => LevelMeta::query()->orderBy('sort')->get(['level', 'short_name', 'name', 'cambridge', 'color_hex'])->toArray(),
             'descriptors' => Descriptor::query()->get(['level', 'skill', 'can_do', 'next_step'])->toArray(),
+            'band_comments' => ScoreService::overallComments(),
             'school' => [
                 'name' => $s->get('school_name'),
                 'address' => $s->get('school_address'),

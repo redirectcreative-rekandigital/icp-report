@@ -18,6 +18,7 @@ class ScoreImportService
         'reading' => ['reading'],
         'writing' => ['writing'],
         'speaking' => ['speaking'],
+        'natgeo' => ['natgeo', 'natgeo (cefr)', 'national geographic', 'cefr'],
         'comment' => ['komentar', 'komentar guru', 'comment', "teacher's comment", "teacher's comment (optional)"],
     ];
 
@@ -35,7 +36,6 @@ class ScoreImportService
             throw new BusinessRuleException("Kelas {$classroom->name} sudah final. Batalkan finalisasi untuk mengimpor nilai.", 'CLASS_FINAL', 423);
         }
 
-        $config = $this->scores->config($classroom);
         $enrollments = $classroom->enrollments()->with(['student', 'score'])->get()->keyBy(fn ($e) => $e->student->nis);
         $seen = [];
         $rows = [];
@@ -61,7 +61,7 @@ class ScoreImportService
                 if (($r['name'] ?? '') !== '' && mb_strtolower(trim($r['name'])) !== mb_strtolower($e->student->name)) {
                     $warnings[] = "Nama di file '{$r['name']}' berbeda dengan nama di sistem '{$e->student->name}'; dipakai nama sistem.";
                 }
-                $diff = ScoreDiff::compare($e->score, array_intersect_key($r, array_flip(ScoreDiff::FIELDS)), $config, $overwrite, $where);
+                $diff = ScoreDiff::compare($e->score, array_intersect_key($r, array_flip(ScoreDiff::FIELDS)), $classroom->usesNatGeo(), $overwrite, $where);
                 $errors = [...$errors, ...$diff['errors']];
                 $warnings = [...$warnings, ...$diff['warnings']];
             }

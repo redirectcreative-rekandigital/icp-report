@@ -37,9 +37,8 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { LEVELS, SKILL_LABEL, SKILLS } from '@/lib/cefr';
-import type { Level, Skill } from '@/lib/cefr';
-import { formatPercent } from '@/lib/format';
+import { BANDS, SKILL_LABEL, SKILLS } from '@/lib/cefr';
+import type { Band, Level, Skill } from '@/lib/cefr';
 import { cn } from '@/lib/utils';
 
 // Chart.js is only downloaded when charts are shown (PRD-01 §7).
@@ -52,9 +51,15 @@ const LevelByGradeChart = defineAsyncComponent(
 const SkillAverageChart = defineAsyncComponent(
     () => import('@/components/charts/SkillAverageChart.vue'),
 );
-const StatusChart = defineAsyncComponent(
-    () => import('@/components/charts/StatusChart.vue'),
+const NatgeoChart = defineAsyncComponent(
+    () => import('@/components/charts/NatgeoChart.vue'),
 );
+
+/** Scores and totals in Indonesian notation: 56.25 → "56,3". */
+const num = (v: number | null | undefined) =>
+    v === null || v === undefined
+        ? '–'
+        : v.toLocaleString('id-ID', { maximumFractionDigits: 1 });
 const TrendChart = defineAsyncComponent(
     () => import('@/components/charts/TrendChart.vue'),
 );
@@ -62,7 +67,7 @@ const TrendChart = defineAsyncComponent(
 type Summary = {
     n: number;
     average: number | null;
-    levels: Record<Level, number>;
+    levels: Record<Band, number>;
 };
 
 const props = defineProps<{
@@ -87,7 +92,7 @@ const props = defineProps<{
         average: number | null;
         previous_average: number | null;
         delta: number | null;
-        meeting_or_above: number | null;
+        intermediate_or_above: number | null;
     };
     progress?: {
         id: number;
@@ -102,15 +107,10 @@ const props = defineProps<{
         byClass: ClassDist[];
         byGrade: {
             grade: number;
-            levels: Record<Level, number>;
+            levels: Record<Band, number>;
             skills: Record<Skill, number | null>;
         }[];
-        status: {
-            below: number;
-            meeting: number;
-            above: number;
-            incomplete: number;
-        };
+        natgeo: Record<Level, number> & { empty: number };
         trend: {
             labels: string[];
             series: { grade: number; values: (number | null)[] }[];
@@ -218,7 +218,7 @@ const skillGroups = computed(() =>
 );
 const hasAssessed = computed(() => (props.kpis?.assessed ?? 0) > 0);
 
-const segment = ref<{ class: string; level: Level; names: string[] } | null>(
+const segment = ref<{ class: string; level: Band; names: string[] } | null>(
     null,
 );
 const segmentOpen = computed({
@@ -268,9 +268,7 @@ const diff = (a: number | null, b: number | null) =>
             :title="`Selamat datang di ${page.props.school.name}`"
             tour="dashboard"
             tour-wait-for="dash-charts"
-            :description="
-                term ? `Rekap capaian CEFR • ${term.label}` : undefined
-            "
+            :description="term ? `Rekap capaian • ${term.label}` : undefined"
         >
             <Button
                 v-if="!showOnboarding && term"
@@ -453,9 +451,8 @@ const diff = (a: number | null, b: number | null) =>
                     </Tooltip>
                     <StatCard
                         :icon="TrendingUp"
-                        label="Rata-rata overall"
+                        label="Rata-rata total"
                         :value="kpis.average"
-                        suffix="%"
                         :digits="1"
                     >
                         <span
@@ -480,10 +477,10 @@ const diff = (a: number | null, b: number | null) =>
                     </StatCard>
                     <StatCard
                         :icon="Target"
-                        label="Sesuai/di atas harapan"
-                        :value="kpis.meeting_or_above"
+                        label="Intermediate ke atas"
+                        :value="kpis.intermediate_or_above"
                         suffix="%"
-                        >Meeting + Above</StatCard
+                        >Intermediate + Advanced</StatCard
                     >
                 </div>
 
@@ -495,7 +492,7 @@ const diff = (a: number | null, b: number | null) =>
                                 loading
                             />
                             <ChartCard
-                                title="Status terhadap harapan"
+                                title="Level National Geographic (Kelas 6)"
                                 loading
                             />
                         </div>
@@ -557,7 +554,7 @@ const diff = (a: number | null, b: number | null) =>
                                             >
                                                 <th class="py-1">Kelas</th>
                                                 <th
-                                                    v-for="l in LEVELS"
+                                                    v-for="l in BANDS"
                                                     :key="l"
                                                     class="py-1 text-right"
                                                 >
@@ -575,7 +572,7 @@ const diff = (a: number | null, b: number | null) =>
                                                     {{ c.class }}
                                                 </td>
                                                 <td
-                                                    v-for="l in LEVELS"
+                                                    v-for="l in BANDS"
                                                     :key="l"
                                                     class="py-1 text-right tabular-nums"
                                                 >
@@ -588,21 +585,28 @@ const diff = (a: number | null, b: number | null) =>
                             </ChartCard>
                             <ChartCard
                                 class="lg:col-span-2"
-                                title="Status terhadap harapan"
+                                title="Level National Geographic (Kelas 6)"
+                                description="Hasil tes penempatan CEFR."
                                 :empty="
-                                    !hasAssessed && !charts.status.incomplete
+                                    !Object.values(charts.natgeo).some(Boolean)
                                 "
                             >
-                                <StatusChart :status="charts.status" />
+                                <NatgeoChart :natgeo="charts.natgeo" />
                                 <template #table>
                                     <table class="w-full text-sm">
                                         <tbody>
                                             <tr
-                                                v-for="(v, k) in charts.status"
+                                                v-for="(v, k) in charts.natgeo"
                                                 :key="k"
                                                 class="border-t"
                                             >
-                                                <td class="py-1">{{ k }}</td>
+                                                <td class="py-1">
+                                                    {{
+                                                        k === 'empty'
+                                                            ? 'Belum diisi'
+                                                            : k
+                                                    }}
+                                                </td>
                                                 <td
                                                     class="py-1 text-right tabular-nums"
                                                 >
@@ -629,7 +633,7 @@ const diff = (a: number | null, b: number | null) =>
                                             >
                                                 <th class="py-1">Jenjang</th>
                                                 <th
-                                                    v-for="l in LEVELS"
+                                                    v-for="l in BANDS"
                                                     :key="l"
                                                     class="py-1 text-right"
                                                 >
@@ -647,7 +651,7 @@ const diff = (a: number | null, b: number | null) =>
                                                     Kelas {{ g.grade }}
                                                 </td>
                                                 <td
-                                                    v-for="l in LEVELS"
+                                                    v-for="l in BANDS"
                                                     :key="l"
                                                     class="py-1 text-right tabular-nums"
                                                 >
@@ -717,11 +721,7 @@ const diff = (a: number | null, b: number | null) =>
                                                     :key="s"
                                                     class="py-1 text-right tabular-nums"
                                                 >
-                                                    {{
-                                                        formatPercent(
-                                                            g.skills[s],
-                                                        )
-                                                    }}
+                                                    {{ num(g.skills[s]) }}
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -734,7 +734,7 @@ const diff = (a: number | null, b: number | null) =>
                             v-if="charts.trend.labels.length"
                             class="mb-6"
                             title="Perbandingan periode"
-                            description="Rata-rata overall per jenjang dari periode yang sudah final (maks. 6). Tes & ambang tiap jenjang berbeda."
+                            description="Rata-rata total (20–100) per jenjang dari periode yang sudah final (maks. 6)."
                         >
                             <TrendChart
                                 :labels="charts.trend.labels"
@@ -770,7 +770,7 @@ const diff = (a: number | null, b: number | null) =>
                                                 :key="i"
                                                 class="py-1 text-right tabular-nums"
                                             >
-                                                {{ formatPercent(v) }}
+                                                {{ num(v) }}
                                             </td>
                                         </tr>
                                     </tbody>
@@ -958,7 +958,7 @@ const diff = (a: number | null, b: number | null) =>
                                             Siswa
                                         </th>
                                         <th
-                                            v-for="l in LEVELS"
+                                            v-for="l in BANDS"
                                             :key="l"
                                             class="px-2 py-2 text-right"
                                         >
@@ -1006,7 +1006,7 @@ const diff = (a: number | null, b: number | null) =>
                                                 {{ row.a.n }}
                                             </td>
                                             <td
-                                                v-for="l in LEVELS"
+                                                v-for="l in BANDS"
                                                 :key="l"
                                                 class="px-2 py-1.5 text-right tabular-nums"
                                             >
@@ -1015,9 +1015,7 @@ const diff = (a: number | null, b: number | null) =>
                                             <td
                                                 class="px-3 py-1.5 text-right tabular-nums"
                                             >
-                                                {{
-                                                    formatPercent(row.a.average)
-                                                }}
+                                                {{ num(row.a.average) }}
                                             </td>
                                         </tr>
                                         <tr
@@ -1037,7 +1035,7 @@ const diff = (a: number | null, b: number | null) =>
                                                 {{ row.b.n }}
                                             </td>
                                             <td
-                                                v-for="l in LEVELS"
+                                                v-for="l in BANDS"
                                                 :key="l"
                                                 class="px-2 py-1.5 text-right tabular-nums"
                                             >
@@ -1046,9 +1044,7 @@ const diff = (a: number | null, b: number | null) =>
                                             <td
                                                 class="px-3 py-1.5 text-right tabular-nums"
                                             >
-                                                {{
-                                                    formatPercent(row.b.average)
-                                                }}
+                                                {{ num(row.b.average) }}
                                             </td>
                                         </tr>
                                         <tr
@@ -1065,7 +1061,7 @@ const diff = (a: number | null, b: number | null) =>
                                             </td>
                                             <td />
                                             <td
-                                                v-for="l in LEVELS"
+                                                v-for="l in BANDS"
                                                 :key="l"
                                                 class="px-2 py-1.5 text-right tabular-nums"
                                             >

@@ -10,7 +10,7 @@ class Score extends Model
 {
     public const SKILLS = ['listening', 'reading', 'writing', 'speaking'];
 
-    protected $fillable = ['enrollment_id', 'listening', 'reading', 'writing', 'speaking', 'teacher_comment', 'version'];
+    protected $fillable = ['enrollment_id', 'listening', 'reading', 'writing', 'speaking', 'natgeo_level', 'teacher_comment', 'version'];
 
     protected function casts(): array
     {

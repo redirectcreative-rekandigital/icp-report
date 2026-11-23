@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { withPin } from '@/composables/usePinConfirm';
-import { LEVELS } from '@/lib/cefr';
+import { BANDS } from '@/lib/cefr';
 import type { StudentResult } from '@/lib/cefr';
 import { http } from '@/lib/http';
 
@@ -48,17 +48,13 @@ watch(open, async (v) => {
     }
 });
 
-const complete = computed(() =>
-    props.results.filter((r) => r.status !== 'incomplete'),
-);
+const complete = computed(() => props.results.filter((r) => r.total !== null));
 const dist = computed(() =>
-    LEVELS.map((l) => ({
+    BANDS.map((l) => ({
         level: l,
         n: complete.value.filter((r) => r.overall_level === l).length,
     })),
 );
-const count = (s: string) =>
-    complete.value.filter((r) => r.status === s).length;
 
 function finalize(): void {
     void withPin(() => {
@@ -140,10 +136,6 @@ function finalize(): void {
                     >
                 </span>
             </div>
-            <p class="text-muted-foreground">
-                Below {{ count('below') }} • Meeting {{ count('meeting') }} •
-                Above {{ count('above') }}
-            </p>
             <p v-if="pending" class="font-medium text-status-incomplete-fg">
                 Tunggu {{ pending }} perubahan selesai tersimpan.
             </p>

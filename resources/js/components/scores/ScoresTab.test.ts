@@ -61,17 +61,18 @@ const row = (
     name,
     is_active: true,
     scores: { listening: s[0], reading: s[1], writing: s[2], speaking: s[3] },
+    natgeo: null as string | null,
     comment,
     version: 1,
 });
 
-function mountGrid(status: 'draft' | 'final' = 'draft') {
+function mountGrid(status: 'draft' | 'final' = 'draft', grade = 5) {
     // Wrap the props in a reactive ref exactly like Inertia does.
     const page = ref({
         classroom: {
             id: 7,
-            grade: 5,
-            name: '5A',
+            grade,
+            name: `${grade}A`,
             homeroom_teacher: null,
             english_teacher: 'Ms. Sarah',
             status,
@@ -82,8 +83,9 @@ function mountGrid(status: 'draft' | 'final' = 'draft') {
             complete: 1,
             total: 2,
         },
-        config: fixture.defaults['5'],
-        levels: [],
+        config: { min: 5, max: 25, ...fixture.defaults },
+        comments: {},
+        natgeoLevels: grade === 6 ? ['Pre-A1', 'A1', 'A2', 'B1', 'B2'] : null,
         rows: [
             row(1, 'Kevin Wijaya', [15, 17, 11, 13]),
             row(2, 'Wulan Sari', [null, null, null, null]),
@@ -115,13 +117,23 @@ describe('ScoresTab (Input Nilai)', () => {
         ).toBe('15');
     });
 
-    it('computes levels instantly in the browser (Kevin → overall A2)', () => {
+    it('computes bands instantly in the browser (Kevin → total 56, Intermediate)', () => {
         const w = mountGrid();
         const firstRow = w.findAll('tbody tr')[0].text();
 
-        expect(firstRow).toContain('A2');
-        expect(firstRow).toContain('B1'); // Reading 17/20 = 85% in grade 5
-        expect(firstRow).toContain('70%');
+        expect(firstRow).toContain('Intermediate'); // Reading 17 ≥ 13, total 56/4 = 14 ≥ 13
+        expect(firstRow).toContain('Beginner'); // Writing 11 < 13
+        expect(firstRow).toContain('56');
+        expect(firstRow).not.toContain('%');
+        expect(w.text()).not.toContain('NatGeo');
+    });
+
+    it('grade 6: shows the NatGeo column and counts it for completeness', () => {
+        const w = mountGrid('draft', 6);
+
+        expect(w.text()).toContain('NatGeo');
+        expect(w.findAll('tbody select')).toHaveLength(2);
+        expect(w.text()).toContain('0/2'); // Kevin has 4 scores but no NatGeo level yet
     });
 
     it('makes the cells read-only when the class is final', () => {

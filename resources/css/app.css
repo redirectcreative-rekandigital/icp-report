@@ -70,6 +70,14 @@
     --level-b2-fg: #ffffff;
     --level-b2-soft: #e3dcee;
 
+    /* Band penilaian internal guru (revisi 23-11-2026): merah / kuning / hijau */
+    --band-beginner: #d64545;
+    --band-beginner-fg: #ffffff;
+    --band-intermediate: #f2c230;
+    --band-intermediate-fg: #3b2a12;
+    --band-advanced: #2e8b57;
+    --band-advanced-fg: #ffffff;
+
     /* Status (PRD-07 §2.3) */
     --status-below: #fdecea;
     --status-below-fg: #b42318;

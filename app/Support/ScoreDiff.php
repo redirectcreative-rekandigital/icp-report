@@ -2,23 +2,29 @@
 
 namespace App\Support;
 
+use App\Domain\Cefr\Level;
 use App\Domain\Cefr\ScoringConfig;
 use App\Models\Score;
 
 /**
  * Compares file values with stored scores (PRD-03 §5.2–5.3):
  * blank = keep; "-" = clear (only with "Timpa"); existing different values are only replaced
- * with "Timpa"; numbers accept "12,5"/"12.5", must be 0–max and whole or .5.
+ * with "Timpa"; numbers accept "12,5"/"12.5", must be 5–25 and whole or .5;
+ * natgeo (grade 6 only) must be Pre-A1, A1, A2, B1 or B2.
  */
 class ScoreDiff
 {
-    public const FIELDS = ['listening', 'reading', 'writing', 'speaking', 'comment'];
+    public const FIELDS = ['listening', 'reading', 'writing', 'speaking', 'natgeo', 'comment'];
+
+    private const COLUMNS = ['comment' => 'teacher_comment', 'natgeo' => 'natgeo_level'];
+
+    private const LABELS = ['comment' => 'Komentar', 'natgeo' => 'NatGeo'];
 
     /**
      * @param  array<string, string>  $file  field => raw cell text
      * @return array{set: array<string, mixed>, errors: list<string>, warnings: list<string>, changes: list<string>, replaces: bool}
      */
-    public static function compare(?Score $current, array $file, ScoringConfig $config, bool $overwrite, string $where): array
+    public static function compare(?Score $current, array $file, bool $natgeoAllowed, bool $overwrite, string $where): array
     {
         $out = ['set' => [], 'errors' => [], 'warnings' => [], 'changes' => [], 'replaces' => false];
 
@@ -28,11 +34,17 @@ class ScoreDiff
             }
 
             $text = trim((string) $file[$field]);
-            $label = $field === 'comment' ? 'Komentar' : ucfirst($field);
-            $old = $field === 'comment' ? $current?->teacher_comment : $current?->{$field};
+            $label = self::LABELS[$field] ?? ucfirst($field);
+            $old = $current?->{self::COLUMNS[$field] ?? $field};
 
             if ($text === '') {
                 continue; // blank cell: keep the stored value
+            }
+
+            if ($field === 'natgeo' && ! $natgeoAllowed) {
+                $out['warnings'][] = 'Kolom NatGeo diabaikan (hanya untuk Kelas 6).';
+
+                continue;
             }
 
             if ($text === '-') {
@@ -51,7 +63,14 @@ class ScoreDiff
                 continue;
             }
 
-            if ($field === 'comment') {
+            if ($field === 'natgeo') {
+                $new = collect(Level::values())->first(fn ($l) => strcasecmp($l, str_replace(' ', '-', $text)) === 0);
+                if ($new === null) {
+                    $out['errors'][] = "{$where}: NatGeo '{$text}' harus Pre-A1, A1, A2, B1 atau B2.";
+
+                    continue;
+                }
+            } elseif ($field === 'comment') {
                 if (mb_strlen($text) > 600) {
                     $out['errors'][] = "{$where}: Komentar lebih dari 600 karakter.";
 
@@ -60,8 +79,7 @@ class ScoreDiff
                 $new = $text;
             } else {
                 $norm = str_replace(',', '.', $text);
-                $max = $config->max[$field];
-                $maxText = self::fmt($max);
+                [$min, $max] = [ScoringConfig::MIN, ScoringConfig::MAX];
                 $shown = str_replace('.', ',', $text);
 
                 if (! is_numeric($norm)) {
@@ -70,13 +88,8 @@ class ScoreDiff
                     continue;
                 }
                 $new = (float) $norm;
-                if ($new < 0) {
-                    $out['errors'][] = "{$where}: {$label} {$shown} tidak boleh negatif.";
-
-                    continue;
-                }
-                if ($new > $max) {
-                    $out['errors'][] = "{$where}: {$label} {$shown} melebihi nilai maksimum {$maxText}.";
+                if ($new < $min || $new > $max) {
+                    $out['errors'][] = "{$where}: {$label} {$shown} harus antara 5 dan 25.";
 
                     continue;
                 }
@@ -87,7 +100,7 @@ class ScoreDiff
                 }
             }
 
-            if ($old === $new || ($old !== null && $field !== 'comment' && (float) $old === $new)) {
+            if ($old === $new || ($old !== null && ! isset(self::COLUMNS[$field]) && (float) $old === $new)) {
                 continue;
             }
 
@@ -114,7 +127,7 @@ class ScoreDiff
 
         $score = Score::query()->firstOrNew(['enrollment_id' => $enrollmentId]);
         foreach ($set as $field => $value) {
-            $score->{$field === 'comment' ? 'teacher_comment' : $field} = $value;
+            $score->{self::COLUMNS[$field] ?? $field} = $value;
         }
         $score->version = ($score->version ?? 0) + 1;
         $score->save();

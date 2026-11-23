@@ -29,9 +29,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { withPin } from '@/composables/usePinConfirm';
 import { usePageTour } from '@/composables/useTour';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { Level } from '@/lib/cefr';
-import { SKILL_LABEL, SKILLS } from '@/lib/cefr';
-import { formatPercent } from '@/lib/format';
+import type { Band } from '@/lib/cefr';
+import { formatScore, SKILL_LABEL, SKILLS } from '@/lib/cefr';
 import { cn } from '@/lib/utils';
 
 /** Student profile. Progress chart & level history arrive in M5 (PRD-06 §4). */
@@ -59,7 +58,7 @@ const props = defineProps<{
         roll_no: number;
     }[];
     points: ProgressPoint[];
-    latestLevel: Level | null;
+    latestLevel: Band | null;
     narrative: string | null;
     classes: { id: number; name: string; grade: number; final: boolean }[];
 }>();
@@ -253,7 +252,7 @@ usePageTour(() => 'siswa-profil');
                         <thead>
                             <tr class="text-left text-muted-foreground">
                                 <th class="py-1">Periode</th>
-                                <th class="py-1 text-right">Overall</th>
+                                <th class="py-1 text-right">Total</th>
                                 <th class="py-1 text-right">Level</th>
                             </tr>
                         </thead>
@@ -267,7 +266,7 @@ usePageTour(() => 'siswa-profil');
                                     {{ p.term }} ({{ p.classroom.name }})
                                 </td>
                                 <td class="py-1 text-right tabular-nums">
-                                    {{ formatPercent(p.overall_pct) }}
+                                    {{ formatScore(p.total) }}
                                 </td>
                                 <td class="py-1 text-right">
                                     {{ p.overall_level }}
@@ -332,9 +331,9 @@ usePageTour(() => 'siswa-profil');
                             <th v-for="s in SKILLS" :key="s" class="px-2 py-2">
                                 {{ SKILL_LABEL[s].charAt(0) }}
                             </th>
-                            <th class="px-2 py-2">Overall</th>
+                            <th class="px-2 py-2">Total</th>
                             <th class="px-2 py-2">Perubahan</th>
-                            <th class="px-2 py-2">Status</th>
+                            <th class="px-2 py-2">NatGeo</th>
                             <th class="px-4 py-2 text-right">Rapor</th>
                         </tr>
                     </thead>
@@ -365,17 +364,17 @@ usePageTour(() => 'siswa-profil');
                                 :key="s"
                                 class="px-2 py-2 text-center"
                             >
-                                <LevelBadge
-                                    :level="p.levels[s]"
-                                    size="sm"
-                                    :percent="p.pct[s]"
-                                />
+                                <LevelBadge :level="p.levels[s]" size="sm" />
+                                <span
+                                    class="block text-[11px] text-muted-foreground tabular-nums"
+                                    >{{ formatScore(p.scores[s]) }}</span
+                                >
                             </td>
                             <td class="px-2 py-2 text-center">
                                 <LevelBadge :level="p.overall_level" />
                                 <span
                                     class="block text-[11px] font-semibold tabular-nums"
-                                    >{{ formatPercent(p.overall_pct) }}</span
+                                    >{{ formatScore(p.total) }}</span
                                 >
                             </td>
                             <td class="px-2 py-2 text-center text-xs">
@@ -407,7 +406,14 @@ usePageTour(() => 'siswa-profil');
                                 >
                             </td>
                             <td class="px-2 py-2 text-center">
-                                <StatusBadge :status="p.status" size="sm" />
+                                <LevelBadge
+                                    v-if="p.natgeo"
+                                    :level="p.natgeo"
+                                    size="sm"
+                                />
+                                <span v-else class="text-muted-foreground"
+                                    >–</span
+                                >
                             </td>
                             <td class="px-4 py-2 text-right">
                                 <Button
@@ -442,7 +448,7 @@ usePageTour(() => 'siswa-profil');
                         <LevelBadge :level="p.overall_level" class="ml-auto" />
                     </div>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        {{ formatPercent(p.overall_pct)
+                        Total {{ formatScore(p.total)
                         }}<template v-if="p.change">
                             • {{ p.previous_level }} →
                             {{ p.overall_level }}</template

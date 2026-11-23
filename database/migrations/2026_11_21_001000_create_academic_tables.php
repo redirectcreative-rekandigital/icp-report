@@ -33,15 +33,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('term_id')->constrained()->cascadeOnDelete();
             $table->unsignedTinyInteger('grade');
-            foreach (['listening', 'reading', 'writing', 'speaking'] as $skill) {
-                $table->decimal("max_{$skill}", 5, 1)->default(20);
-            }
-            foreach (['listening', 'reading', 'writing', 'speaking'] as $skill) {
-                $table->decimal("weight_{$skill}", 5, 2)->default(25);
-            }
-            $table->json('thresholds');
-            $table->string('expected_min', 10);
-            $table->string('expected_max', 10);
+            // Skill score ≥ min_intermediate → Intermediate, ≥ min_advanced → Advanced (total uses ×4).
+            $table->decimal('min_intermediate', 4, 1)->default(13);
+            $table->decimal('min_advanced', 4, 1)->default(20);
             $table->timestamps();
 
             $table->unique(['term_id', 'grade']);
@@ -94,6 +88,7 @@ return new class extends Migration
             foreach (['listening', 'reading', 'writing', 'speaking'] as $skill) {
                 $table->decimal($skill, 4, 1)->nullable();
             }
+            $table->string('natgeo_level', 10)->nullable(); // grade 6 only: National Geographic CEFR result
             $table->text('teacher_comment')->nullable();
             $table->unsignedInteger('version')->default(0);
             $table->timestamps();

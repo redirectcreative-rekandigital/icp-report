@@ -5,27 +5,27 @@
  */
 
 export const SKILLS = ['listening', 'reading', 'writing', 'speaking'] as const;
+/** Internal teacher assessment bands (revisi 23-11-2026 item 6). */
+export const BANDS = ['Beginner', 'Intermediate', 'Advanced'] as const;
+/** CEFR levels of the grade 6 National Geographic placement test. */
 export const LEVELS = ['Pre-A1', 'A1', 'A2', 'B1', 'B2'] as const;
 
 export type Skill = (typeof SKILLS)[number];
+export type Band = (typeof BANDS)[number];
 export type Level = (typeof LEVELS)[number];
-export type Status = 'incomplete' | 'below' | 'meeting' | 'above';
 export type Scores = Partial<Record<Skill, number | null>>;
 
 export type ScoringConfig = {
-    max: Record<Skill, number>;
-    weight: Record<Skill, number>;
-    thresholds: Record<Level, number | null>;
-    expected_min: Level;
-    expected_max: Level;
+    min: number;
+    max: number;
+    intermediate: number;
+    advanced: number;
 };
 
 export type StudentResult = {
-    percent: Record<Skill, number | null>;
-    level: Record<Skill, Level | null>;
-    overall_percent: number | null;
-    overall_level: Level | null;
-    status: Status;
+    level: Record<Skill, Band | null>;
+    total: number | null;
+    overall_level: Band | null;
     strongest: Skill | null;
 };
 
@@ -36,100 +36,51 @@ export const SKILL_LABEL: Record<Skill, string> = {
     speaking: 'Speaking',
 };
 
-const PRECISION = 1e9;
+export const SCORE_MIN = 5;
+export const SCORE_MAX = 25;
 
-/** Same as PHP round($x, 9). */
-function round9(x: number): number {
-    return Math.round(x * PRECISION) / PRECISION;
-}
-
-export function levelFor(config: ScoringConfig, pct: number): Level {
-    let result: Level = 'Pre-A1';
-
-    for (const level of LEVELS) {
-        const t = config.thresholds[level];
-
-        if (t !== null && t !== undefined && pct >= t) {
-            result = level;
-        }
+export function levelFor(config: ScoringConfig, score: number): Band {
+    if (score >= config.advanced) {
+        return 'Advanced';
     }
 
-    return result;
+    return score >= config.intermediate ? 'Intermediate' : 'Beginner';
 }
 
 export function calculate(
     config: ScoringConfig,
     scores: Scores,
 ): StudentResult {
-    const percent = {} as Record<Skill, number | null>;
-    const level = {} as Record<Skill, Level | null>;
+    const level = {} as Record<Skill, Band | null>;
+    let total = 0;
+    let complete = true;
 
     for (const skill of SKILLS) {
         const raw = scores[skill];
-        const max = config.max[skill] ?? 0;
-        const pct =
-            raw === null || raw === undefined || max <= 0
-                ? null
-                : round9((raw / max) * 100);
-        percent[skill] = pct;
-        level[skill] = pct === null ? null : levelFor(config, pct);
+        const has = raw !== null && raw !== undefined;
+        level[skill] = has ? levelFor(config, raw) : null;
+        complete = complete && has;
+        total += has ? raw : 0;
     }
 
-    const complete = SKILLS.every((s) => percent[s] !== null);
-    const weightSum = SKILLS.reduce(
-        (sum, s) => sum + (config.weight[s] ?? 0),
-        0,
-    );
-
-    let overall: number | null = null;
-
-    if (complete && weightSum > 0) {
-        const sum = SKILLS.reduce(
-            (acc, s) => acc + (percent[s] as number) * (config.weight[s] ?? 0),
-            0,
-        );
-        overall = round9(sum / weightSum);
+    if (!complete) {
+        return { level, total: null, overall_level: null, strongest: null };
     }
-
-    const overallLevel = overall === null ? null : levelFor(config, overall);
 
     return {
-        percent,
         level,
-        overall_percent: overall,
-        overall_level: overallLevel,
-        status: status(config, overallLevel),
-        strongest:
-            overall === null
-                ? null
-                : strongest(percent as Record<Skill, number>),
+        total,
+        overall_level: levelFor(config, total / 4),
+        strongest: strongest(scores as Record<Skill, number>),
     };
 }
 
-function status(config: ScoringConfig, overallLevel: Level | null): Status {
-    if (overallLevel === null) {
-        return 'incomplete';
-    }
-
-    const idx = LEVELS.indexOf(overallLevel);
-
-    if (idx < LEVELS.indexOf(config.expected_min)) {
-        return 'below';
-    }
-
-    if (idx > LEVELS.indexOf(config.expected_max)) {
-        return 'above';
-    }
-
-    return 'meeting';
-}
-
-function strongest(percent: Record<Skill, number>): Skill {
+function strongest(scores: Record<Skill, number>): Skill {
     let best: Skill = SKILLS[0];
 
     for (const skill of SKILLS) {
-        if (percent[skill] > percent[best]) {
-            best = skill; // strict ">" keeps the first skill on ties (Excel MATCH)
+        if (scores[skill] > scores[best]) {
+            best = skill; // strict ">" keeps the first skill on ties
         }
     }
 
@@ -140,7 +91,7 @@ export function reportComment(
     result: StudentResult,
     studentName: string,
     teacherComment: string | null | undefined,
-    overallComments: Partial<Record<Level, string>>,
+    overallComments: Partial<Record<Band, string>>,
     withStrongest = true,
 ): string | null {
     const own = (teacherComment ?? '').trim();
@@ -162,13 +113,14 @@ export function reportComment(
     return text;
 }
 
+const RANGE_ERROR = `Nilai harus ${SCORE_MIN}–${SCORE_MAX} (kelipatan 0,5)`;
+
 /**
  * Parses what a teacher typed into a score cell (PRD-04 §4.2):
- * "12,5" → 12.5, "015" → 15, "" → null; rejects text, < 0, > max and non-0.5 steps.
+ * "12,5" → 12.5, "015" → 15, "" → null; rejects text, < 5, > 25 and non-0.5 steps.
  */
 export function parseScore(
     input: string,
-    max: number,
 ): { ok: true; value: number | null } | { ok: false; error: string } {
     const text = input.trim().replace(',', '.');
 
@@ -177,26 +129,20 @@ export function parseScore(
     }
 
     if (!/^\d+(\.\d+)?$/.test(text)) {
-        return {
-            ok: false,
-            error: `Nilai harus 0–${formatMax(max)} (kelipatan 0,5)`,
-        };
+        return { ok: false, error: RANGE_ERROR };
     }
 
     const value = Number(text);
 
-    if (value < 0 || value > max || Math.round(value * 2) !== value * 2) {
-        return {
-            ok: false,
-            error: `Nilai harus 0–${formatMax(max)} (kelipatan 0,5)`,
-        };
+    if (
+        value < SCORE_MIN ||
+        value > SCORE_MAX ||
+        Math.round(value * 2) !== value * 2
+    ) {
+        return { ok: false, error: RANGE_ERROR };
     }
 
     return { ok: true, value };
-}
-
-function formatMax(max: number): string {
-    return String(max).replace('.', ',');
 }
 
 /** Indonesian display of a raw score: 12.5 → "12,5". */

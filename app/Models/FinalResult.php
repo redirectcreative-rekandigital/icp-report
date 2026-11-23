@@ -14,8 +14,7 @@ class FinalResult extends Model
     {
         return [
             'listening' => 'float', 'reading' => 'float', 'writing' => 'float', 'speaking' => 'float',
-            'listening_pct' => 'float', 'reading_pct' => 'float', 'writing_pct' => 'float', 'speaking_pct' => 'float',
-            'overall_pct' => 'float',
+            'total' => 'float',
             'is_current' => 'boolean',
             'grade' => 'integer',
         ];

@@ -3,15 +3,16 @@
 namespace App\Services;
 
 use App\Domain\Cefr\CefrCalculator;
+use App\Domain\Cefr\Level;
 use App\Domain\Cefr\ScoringConfig;
 use App\Exceptions\BusinessRuleException;
 use App\Models\ActivityLog;
 use App\Models\Classroom;
 use App\Models\Enrollment;
-use App\Models\LevelMeta;
 use App\Models\Score;
 use App\Models\ScoringConfig as ScoringConfigModel;
 use App\Support\PinSession;
+use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +21,9 @@ use Illuminate\Validation\ValidationException;
 class ScoreService
 {
     public const LOG_MERGE_SECONDS = 60;
+
+    /** Request field → scores column (skills map to themselves). */
+    public const COLUMNS = ['comment' => 'teacher_comment', 'natgeo' => 'natgeo_level'];
 
     public function __construct(private ActivityLogger $logger, private Request $request) {}
 
@@ -53,11 +57,12 @@ class ScoreService
             ->all();
     }
 
-    /** @return array{scores: array<string, float|null>, comment: ?string, version: int} */
+    /** @return array{scores: array<string, float|null>, natgeo: ?string, comment: ?string, version: int} */
     public function scorePayload(?Score $score): array
     {
         return [
             'scores' => array_combine(Score::SKILLS, array_map(fn ($s) => $score?->{$s}, Score::SKILLS)),
+            'natgeo' => $score?->natgeo_level,
             'comment' => $score?->teacher_comment,
             'version' => $score?->version ?? 0,
         ];
@@ -72,14 +77,14 @@ class ScoreService
         ];
     }
 
-    /** @return array<string, string> level => overall comment */
+    /** @return array<string, string> band => overall comment */
     public static function overallComments(): array
     {
-        return LevelMeta::query()->pluck('overall_comment', 'level')->all();
+        return (array) app(Settings::class)->get('band_comments');
     }
 
     /**
-     * Saves one cell (a skill score or the teacher comment) with optimistic locking.
+     * Saves one cell (a skill score, the NatGeo level or the teacher comment) with optimistic locking.
      *
      * @return array<string, mixed> response body
      */
@@ -88,7 +93,7 @@ class ScoreService
         abort_unless($enrollment->classroom_id === $classroom->id, 404);
 
         $config = $this->config($classroom);
-        $value = $this->validateValue($field, $value, $config);
+        $value = $this->validateValue($field, $value, $classroom);
 
         return DB::transaction(function () use ($classroom, $enrollment, $field, $value, $version, $config) {
             // Re-read under lock so concurrent saves for the same row are serialised.
@@ -105,7 +110,7 @@ class ScoreService
                 throw new ScoreConflictException($this->scorePayload($score->exists ? $score : null));
             }
 
-            $column = $field === 'comment' ? 'teacher_comment' : $field;
+            $column = self::COLUMNS[$field] ?? $field;
             $old = $score->{$column};
 
             if ($old !== $value) {
@@ -126,8 +131,22 @@ class ScoreService
         });
     }
 
-    private function validateValue(string $field, mixed $value, ScoringConfig $config): float|string|null
+    private function validateValue(string $field, mixed $value, Classroom $classroom): float|string|null
     {
+        if ($field === 'natgeo') {
+            if (! $classroom->usesNatGeo()) {
+                throw ValidationException::withMessages(['value' => 'Level National Geographic hanya untuk Kelas '.Classroom::NATGEO_GRADE.'.']);
+            }
+            if ($value === null || $value === '') {
+                return null;
+            }
+            if (! in_array($value, Level::values(), true)) {
+                throw ValidationException::withMessages(['value' => 'Level harus salah satu dari '.implode(', ', Level::values()).'.']);
+            }
+
+            return $value;
+        }
+
         if ($field === 'comment') {
             $text = trim((string) $value);
 
@@ -143,8 +162,7 @@ class ScoreService
         }
 
         $label = ucfirst($field);
-        $max = $config->max[$field];
-        $maxText = rtrim(rtrim(number_format($max, 1, ',', ''), '0'), ',');
+        [$min, $max] = [(int) ScoringConfig::MIN, (int) ScoringConfig::MAX];
 
         if (! is_numeric(str_replace(',', '.', (string) $value))) {
             throw ValidationException::withMessages(['value' => "{$label} '{$value}' bukan angka."]);
@@ -152,8 +170,8 @@ class ScoreService
 
         $number = (float) str_replace(',', '.', (string) $value);
 
-        if ($number < 0 || $number > $max) {
-            throw ValidationException::withMessages(['value' => "Nilai {$label} harus antara 0 dan {$maxText}."]);
+        if ($number < $min || $number > $max) {
+            throw ValidationException::withMessages(['value' => "Nilai {$label} harus antara {$min} dan {$max}."]);
         }
 
         if (fmod($number * 2, 1.0) !== 0.0) {
@@ -185,7 +203,11 @@ class ScoreService
             $recent->delete();
         }
 
-        $what = $field === 'comment' ? 'Komentar' : 'Nilai '.ucfirst($field);
+        $what = match ($field) {
+            'comment' => 'Komentar',
+            'natgeo' => 'Level National Geographic',
+            default => 'Nilai '.ucfirst($field),
+        };
         $this->logger->log(
             'score.updated',
             'nilai',

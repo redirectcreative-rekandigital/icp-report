@@ -52,7 +52,28 @@ it('downloads a score template listing the class students with validation', func
     expect($sheet->getCell('B3')->getValue())->toBe('NIS*')
         ->and($sheet->getCell('B4')->getValue())->toBe('5001')
         ->and($sheet->getCell('D4')->getValue())->toEqual(15)
-        ->and($sheet->getCell('D4')->getDataValidation()->getFormula2())->toBe('20');
+        ->and($sheet->getCell('D4')->getDataValidation()->getFormula1())->toBe('5')
+        ->and($sheet->getCell('D4')->getDataValidation()->getFormula2())->toBe('25')
+        ->and($sheet->getCell('I3')->getValue())->toBeNull(); // no NatGeo column below grade 6
+});
+
+it('imports the National Geographic level for grade 6 only', function () {
+    $c6a = Classroom::where(['term_id' => $this->term->id, 'name' => '6A'])->first();
+    $sheet = readXlsx($this->get("/impor/template/nilai/{$c6a->id}")->streamedContent())->getActiveSheet();
+    expect($sheet->getCell('I3')->getValue())->toBe('NatGeo')
+        ->and($sheet->getCell('I4')->getValue())->toBe('A2');
+
+    $rows = [['NIS', 'NatGeo'], ['6001', 'b1'], ['6002', 'C1']];
+    $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload($rows), 'classroom_id' => $c6a->id, 'overwrite' => true]);
+    $this->get('/impor')->assertInertia(fn (Assert $p) => $p
+        ->where('preview.rows.0.changes', ['NatGeo "A2" → "B1"'])
+        ->where('preview.rows.1.messages.0', "Baris 3: NatGeo 'C1' harus Pre-A1, A1, A2, B1 atau B2."));
+    $this->post('/impor/simpan')->assertSessionHas('success');
+    expect(scoreOf('6001')->natgeo_level)->toBe('B1');
+
+    $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload([['NIS', 'NatGeo'], ['5001', 'A2']]), 'classroom_id' => $this->c5a->id]);
+    $this->get('/impor')->assertInertia(fn (Assert $p) => $p
+        ->where('preview.rows.0.messages.0', 'Kolom NatGeo diabaikan (hanya untuk Kelas 6).'));
 });
 
 it('imports new scores, keeps existing ones without "Timpa", and reports errors', function () {
@@ -62,7 +83,7 @@ it('imports new scores, keeps existing ones without "Timpa", and reports errors'
         [1, '5006', 'Wulan Sari', '12,5', 14, 13, 15, 'Good job'],   // new scores
         [2, '5001', 'Kevin Wijaya', 16, '', '', '', ''],               // differs from 15 → kept (warning)
         [3, '5002', 'Laras', 'lima belas', '', '', '', ''],           // not a number
-        [4, '5007', 'Yusuf Ramadhan', 22, '', 12.3, '', ''],                    // > max, not .5
+        [4, '5007', 'Yusuf Ramadhan', 26, '', 12.3, '', ''],                    // > 25, not .5
         [5, '6010', 'Nobody', 10, 10, 10, 10, ''],                     // not in class
     ];
     $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload($rows), 'classroom_id' => $this->c5a->id])->assertRedirect('/impor');
@@ -74,7 +95,7 @@ it('imports new scores, keeps existing ones without "Timpa", and reports errors'
         ->where('preview.rows.0.changes', ['Listening – → 12,5', 'Reading – → 14', 'Writing – → 13', 'Speaking – → 15', 'Komentar – → "Good job"'])
         ->where('preview.rows.1.status', 'warning')
         ->where('preview.rows.2.messages.0', "Baris 6: Listening 'lima belas' bukan angka.")
-        ->where('preview.rows.3.messages', ['Baris 7: Listening 22 melebihi nilai maksimum 20.', 'Baris 7: Writing 12,3 harus bulat atau kelipatan 0,5.'])
+        ->where('preview.rows.3.messages', ['Baris 7: Listening 26 harus antara 5 dan 25.', 'Baris 7: Writing 12,3 harus bulat atau kelipatan 0,5.'])
         ->where('preview.rows.4.messages.0', 'Baris 8: NIS 6010 tidak terdaftar di kelas 5A.')
         ->where('preview.summary.importable', 1)
         ->missing('preview.rows.0.set'));
@@ -148,12 +169,13 @@ it('exports the class recap like the Excel Grade sheet, marked DRAFT', function 
 
     expect($sheet->getTitle())->toBe('5A (DRAFT)')
         ->and($sheet->getCell('C5')->getValue())->toBe('Kevin Wijaya')
-        ->and($sheet->getCell('O5')->getValue())->toBe('B1')     // Reading level
-        ->and($sheet->getCell('R5')->getValue())->toEqual(70)     // overall %
-        ->and($sheet->getCell('S5')->getValue())->toBe('A2')
-        ->and($sheet->getCell('T5')->getValue())->toBe('Meeting Expected')
-        ->and($sheet->getCell('U5')->getValue())->toBe('Reading')
-        ->and($sheet->getStyle('S5')->getFill()->getStartColor()->getRGB())->toBe('1F7A70');
+        ->and($sheet->getCell('K5')->getValue())->toBe('Intermediate') // Reading 17
+        ->and($sheet->getCell('L5')->getValue())->toBe('Beginner')     // Writing 11
+        ->and($sheet->getCell('N5')->getValue())->toEqual(56)          // total
+        ->and($sheet->getCell('O5')->getValue())->toBe('Intermediate')
+        ->and($sheet->getCell('P5')->getValue())->toBeNull()           // NatGeo: grade 6 only
+        ->and($sheet->getCell('Q5')->getValue())->toBe('Reading')
+        ->and($sheet->getStyle('O5')->getFill()->getStartColor()->getRGB())->toBe('F2C230');
 });
 
 it('exports the period recap with a summary sheet and one sheet per class', function () {

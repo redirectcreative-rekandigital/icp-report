@@ -2,21 +2,21 @@
 import type { ChartData, ChartOptions } from 'chart.js';
 import { computed } from 'vue';
 import { Bar } from 'vue-chartjs';
-import { LEVEL_COLORS, segmentLabels } from '@/components/charts/setup';
-import { LEVELS } from '@/lib/cefr';
-import type { Level } from '@/lib/cefr';
+import { BAND_COLORS, segmentLabels } from '@/components/charts/setup';
+import { BANDS } from '@/lib/cefr';
+import type { Band } from '@/lib/cefr';
 
 /** "Sebaran level per grade" — stacked vertical bars, student counts (PRD-06 §3.3). */
 const props = defineProps<{
-    grades: { grade: number; levels: Record<Level, number> }[];
+    grades: { grade: number; levels: Record<Band, number> }[];
 }>();
 
 const data = computed<ChartData<'bar'>>(() => ({
     labels: props.grades.map((g) => `Kelas ${g.grade}`),
-    datasets: LEVELS.map((l) => ({
+    datasets: BANDS.map((l) => ({
         label: l,
         data: props.grades.map((g) => g.levels[l]),
-        backgroundColor: LEVEL_COLORS[l].bg,
+        backgroundColor: BAND_COLORS[l].bg,
         borderColor: '#FFFFFF',
         borderWidth: { top: 1, bottom: 1 },
         borderSkipped: false,
@@ -50,7 +50,7 @@ const options: ChartOptions<'bar'> = {
 
 const plugins = [
     segmentLabels(
-        LEVELS.map((l) => LEVEL_COLORS[l].fg),
+        BANDS.map((l) => BAND_COLORS[l].fg),
         16,
     ),
 ];

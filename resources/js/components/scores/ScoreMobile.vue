@@ -4,13 +4,13 @@ import StatusBadge from '@/components/app/StatusBadge.vue';
 import type { ResultMap } from '@/components/scores/types';
 import type { ScoreRow } from '@/composables/useScoreAutosave';
 import { formatScore, SKILLS } from '@/lib/cefr';
-import type { ScoringConfig } from '@/lib/cefr';
 
 /** Phone list replacing the table (PRD-08 §5.3); tapping a card opens the student form. */
 defineProps<{
     rows: ScoreRow[];
     results: ResultMap;
-    config: ScoringConfig;
+    /** Grade 6: show the National Geographic level. */
+    natgeo: boolean;
     locked: boolean;
 }>();
 const emit = defineEmits<{ open: [row: ScoreRow] }>();
@@ -34,10 +34,7 @@ const emit = defineEmits<{ open: [row: ScoreRow] }>();
                         row.name
                     }}</span>
                     <StatusBadge
-                        v-if="
-                            results.get(row.enrollment_id)!.status ===
-                            'incomplete'
-                        "
+                        v-if="results.get(row.enrollment_id)!.total === null"
                         status="incomplete"
                         size="sm"
                     />
@@ -47,7 +44,7 @@ const emit = defineEmits<{ open: [row: ScoreRow] }>();
                     />
                 </div>
                 <div
-                    class="mt-1 flex items-center gap-3 pl-8 text-sm text-muted-foreground tabular-nums"
+                    class="mt-1 flex flex-wrap items-center gap-3 pl-8 text-sm text-muted-foreground tabular-nums"
                 >
                     <span v-for="s in SKILLS" :key="s">
                         {{ s.charAt(0).toUpperCase() }}
@@ -55,15 +52,18 @@ const emit = defineEmits<{ open: [row: ScoreRow] }>();
                             formatScore(row.scores[s]) || '–'
                         }}</strong>
                     </span>
-                    <StatusBadge
-                        v-if="
-                            results.get(row.enrollment_id)!.status !==
-                            'incomplete'
-                        "
-                        :status="results.get(row.enrollment_id)!.status"
-                        size="sm"
-                        class="ml-auto"
-                    />
+                    <span v-if="results.get(row.enrollment_id)!.total !== null">
+                        Total
+                        <strong class="text-foreground">{{
+                            formatScore(results.get(row.enrollment_id)!.total)
+                        }}</strong>
+                    </span>
+                    <span v-if="natgeo" class="ml-auto">
+                        NatGeo
+                        <strong class="text-foreground">{{
+                            row.natgeo ?? '–'
+                        }}</strong>
+                    </span>
                 </div>
             </button>
         </li>

@@ -45,7 +45,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'dash-kpi',
                 title: 'Ringkasan angka',
-                text: 'Jumlah siswa dinilai, kelas final, rata-rata overall, dan persentase siswa sesuai/di atas harapan.',
+                text: 'Jumlah siswa dinilai, kelas final, rata-rata total nilai, dan persentase siswa di level Intermediate ke atas.',
             },
             {
                 anchor: 'dash-charts',
@@ -106,12 +106,12 @@ export const tours: Record<TourId, TourDef> = {
                 anchor: 'score-grid',
                 mobileAnchor: 'score-list',
                 title: 'Isi nilai',
-                text: 'Ketik nilai 0–20 (boleh ,5). Enter/↓ pindah ke bawah, Tab ke kanan. Bisa juga tempel blok nilai dari Excel.',
+                text: 'Ketik nilai 5–25 (boleh ,5). Enter/↓ pindah ke bawah, Tab ke kanan. Bisa juga tempel blok nilai dari Excel. Kelas 6: pilih juga level National Geographic.',
             },
             {
                 anchor: 'score-levels',
                 title: 'Level otomatis',
-                text: 'Level CEFR, overall, dan status dihitung langsung saat Anda mengetik.',
+                text: 'Level Beginner / Intermediate / Advanced dan total nilai dihitung langsung saat Anda mengetik.',
             },
             {
                 anchor: 'save-indicator',
@@ -255,7 +255,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'profile-chart',
                 title: 'Grafik perkembangan',
-                text: 'Overall per semester. Warna titik = level; garis putus-putus = belum final.',
+                text: 'Total nilai per semester. Warna titik = level; garis putus-putus = belum final.',
             },
             {
                 anchor: 'profile-summary',
@@ -330,7 +330,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'import-scores',
                 title: 'Impor nilai kelas',
-                text: 'Pilih kelas, unduh template berisi daftar siswa, isi nilai, lalu unggah. Sel kosong = nilai tidak diubah.',
+                text: 'Pilih kelas, unduh template berisi daftar siswa, isi nilai 5–25 (kelas 6: juga kolom NatGeo), lalu unggah. Sel kosong = nilai tidak diubah.',
             },
             {
                 anchor: 'import-overwrite',
@@ -478,14 +478,14 @@ export const tours: Record<TourId, TourDef> = {
                 text: 'Setiap jenjang (Kelas 3–6) punya pengaturan sendiri.',
             },
             {
-                anchor: 'sc-max',
-                title: 'Nilai maksimum & bobot',
-                text: 'Nilai maksimum per skill dan bobotnya terhadap overall.',
+                anchor: 'sc-thresholds',
+                title: 'Batas level',
+                text: 'Nilai minimum per skill untuk Intermediate dan Advanced. Level total memakai batas yang sama ×4.',
             },
             {
-                anchor: 'sc-thresholds',
-                title: 'Ambang batas level',
-                text: 'Persentase minimum untuk setiap level CEFR.',
+                anchor: 'sc-max',
+                title: 'Rentang nilai',
+                text: 'Pratinjau rentang nilai tiap level, per skill dan total.',
             },
             {
                 anchor: 'sc-impact',
@@ -504,11 +504,11 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'ds-level',
                 title: 'Pilih level',
-                text: 'Deskriptor diatur per level CEFR.',
+                text: 'Deskriptor diatur per level Beginner, Intermediate, dan Advanced.',
             },
             {
                 anchor: 'ds-meta',
-                title: 'Nama level & komentar otomatis',
+                title: 'Komentar otomatis',
                 text: 'Teks yang tampil di rapor bila guru tidak menulis komentar sendiri.',
             },
             {
@@ -519,7 +519,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'ds-reset',
                 title: 'Kembalikan ke teks asli',
-                text: 'Kembalikan semua teks ke isi file Excel ICP.',
+                text: 'Kembalikan semua teks ke isi bawaan.',
             },
         ],
     },
@@ -569,12 +569,12 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'fin-summary',
                 title: 'Ringkasan',
-                text: 'Sebaran level dan status siswa yang akan dikunci.',
+                text: 'Sebaran level Beginner / Intermediate / Advanced siswa yang akan dikunci.',
             },
             {
                 anchor: 'fin-incomplete',
                 title: 'Belum lengkap',
-                text: 'Siswa yang nilainya belum lengkap. Klik Lompat untuk langsung ke barisnya.',
+                text: 'Siswa yang nilainya belum lengkap (kelas 6: termasuk level National Geographic). Klik Lompat untuk langsung ke barisnya.',
             },
             {
                 anchor: 'fin-check',
@@ -594,12 +594,12 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'panel-scores',
                 title: 'Nilai',
-                text: 'Isi nilai per skill. Enter pindah ke skill berikutnya.',
+                text: 'Isi nilai 5–25 per skill. Enter pindah ke skill berikutnya. Kelas 6: pilih juga level National Geographic.',
             },
             {
                 anchor: 'panel-summary',
-                title: 'Ringkasan & radar',
-                text: 'Level per skill, overall, dan grafik radar seperti di rapor.',
+                title: 'Ringkasan & grafik',
+                text: 'Level per skill, total nilai, dan grafik garis nilai tiap skill.',
             },
             {
                 anchor: 'panel-auto',

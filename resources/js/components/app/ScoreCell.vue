@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 const props = withDefaults(
     defineProps<{
         modelValue: number | null;
-        max: number;
         locked?: boolean;
         saving?: boolean;
         serverError?: string | null;
@@ -53,7 +52,7 @@ watch(
     },
 );
 
-const parsed = computed(() => parseScore(draft.value, props.max));
+const parsed = computed(() => parseScore(draft.value));
 const invalid = computed(() => !parsed.value.ok);
 const message = computed(() =>
     parsed.value.ok ? props.serverError : parsed.value.error,

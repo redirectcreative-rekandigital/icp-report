@@ -17,7 +17,7 @@ import TourButton from '@/components/app/TourButton.vue';
 import ReportTab from '@/components/reports/ReportTab.vue';
 import type { BatchState, ReportStudent } from '@/components/reports/types';
 import ScoresTab from '@/components/scores/ScoresTab.vue';
-import type { ClassInfo, LevelMetaRow } from '@/components/scores/types';
+import type { ClassInfo } from '@/components/scores/types';
 import UnfinalizeDialog from '@/components/scores/UnfinalizeDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -32,7 +32,7 @@ import {
 import type { ScoreRow } from '@/composables/useScoreAutosave';
 import { usePageTour } from '@/composables/useTour';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { ScoringConfig } from '@/lib/cefr';
+import type { Band, Level, ScoringConfig } from '@/lib/cefr';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { TourId } from '@/tours/types';
@@ -42,7 +42,8 @@ const props = defineProps<{
     classroom: ClassInfo;
     tab: 'nilai' | 'rapor' | 'riwayat';
     config?: ScoringConfig;
-    levels?: LevelMetaRow[];
+    comments?: Partial<Record<Band, string>>;
+    natgeoLevels?: Level[] | null;
     rows?: ScoreRow[];
     history?: {
         id: number;
@@ -266,11 +267,12 @@ usePageTour(() => tourId.value);
         </nav>
 
         <ScoresTab
-            v-if="tab === 'nilai' && config && levels && rows"
+            v-if="tab === 'nilai' && config && comments && rows"
             :key="classroom.id"
             :classroom="classroom"
             :config="config"
-            :levels="levels"
+            :comments="comments"
+            :natgeo-levels="natgeoLevels ?? null"
             :rows="rows"
         />
 

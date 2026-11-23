@@ -54,21 +54,23 @@ it('finalizes: snapshot, final results, lock, log', function () {
     expect($class->status)->toBe('final')->and($class->current_finalization_id)->not->toBeNull();
 
     $kevin = FinalResult::where('enrollment_id', $this->kevin->id)->first();
-    expect($kevin->overall_level)->toBe('A2')
-        ->and($kevin->overall_pct)->toEqualWithDelta(70, 1e-9)
-        ->and($kevin->reading_level)->toBe('B1')
-        ->and($kevin->status)->toBe('meeting')
+    expect($kevin->overall_level)->toBe('Intermediate')
+        ->and($kevin->total)->toBe(56.0)
+        ->and($kevin->reading_level)->toBe('Intermediate')
+        ->and($kevin->writing_level)->toBe('Beginner')
+        ->and($kevin->natgeo_level)->toBeNull()
         ->and($kevin->strongest_skill)->toBe('reading')
         ->and($kevin->comment_final)->toStartWith('Kevin Wijaya can understand and use English in everyday situations')
         ->and($kevin->comment_final)->toEndWith('Strongest skill this term: Reading.')
         ->and(FinalResult::where('enrollment_id', $this->citra->id)->value('comment_final'))->toBe('Keep it up!');
 
     $snapshot = Finalization::find($class->current_finalization_id)->config_snapshot;
-    expect($snapshot['scoring']['thresholds']['B1'])->toEqual(85)
+    expect($snapshot['scoring']['intermediate'])->toEqual(13)
+        ->and($snapshot['band_comments'])->toHaveKeys(['Beginner', 'Intermediate', 'Advanced'])
         ->and($snapshot['classroom']['english_teacher'])->toBe('Ms. Sarah')
         ->and($snapshot['school']['name'])->toBe('SD Muhammadiyah Wonorejo')
         ->and($snapshot['term']['report_date'])->toBe('2026-12-18')
-        ->and($snapshot['descriptors'])->toHaveCount(20);
+        ->and($snapshot['descriptors'])->toHaveCount(12);
 
     expect(ActivityLog::where('action', 'class.finalized')->exists())->toBeTrue();
 
@@ -80,11 +82,22 @@ it('keeps final results when thresholds change afterwards', function () {
     Score::where('enrollment_id', $this->citra->id)->update(['writing' => 9, 'speaking' => 12]);
     $this->post("/kelas/{$this->class->id}/finalkan");
 
-    ScoringConfig::where(['term_id' => $this->term->id, 'grade' => 5])->update([
-        'thresholds' => json_encode(['Pre-A1' => 0, 'A1' => 60, 'A2' => 90, 'B1' => null, 'B2' => null]),
-    ]);
+    ScoringConfig::where(['term_id' => $this->term->id, 'grade' => 5])->update(['min_intermediate' => 18, 'min_advanced' => 22]);
 
-    expect(FinalResult::where('enrollment_id', $this->kevin->id)->value('overall_level'))->toBe('A2');
+    expect(FinalResult::where('enrollment_id', $this->kevin->id)->value('overall_level'))->toBe('Intermediate');
+});
+
+it('requires the National Geographic level before finalizing grade 6', function () {
+    $g6 = Classroom::create(['term_id' => $this->term->id, 'grade' => 6, 'name' => '6A']);
+    $e = Enrollment::create(['classroom_id' => $g6->id, 'student_id' => Student::create(['nis' => '6001', 'name' => 'Putri'])->id, 'term_id' => $this->term->id]);
+    $score = Score::create(['enrollment_id' => $e->id, 'listening' => 16, 'reading' => 17, 'writing' => 15, 'speaking' => 16]);
+
+    $this->getJson("/kelas/{$g6->id}/kesiapan-final")->assertJsonPath('incomplete.0.missing', ['NatGeo']);
+    $this->post("/kelas/{$g6->id}/finalkan")->assertSessionHas('error');
+
+    $score->update(['natgeo_level' => 'A2']);
+    $this->post("/kelas/{$g6->id}/finalkan")->assertSessionHas('success');
+    expect(FinalResult::where('enrollment_id', $e->id)->value('natgeo_level'))->toBe('A2');
 });
 
 it('unfinalizes with a reason and PIN, keeps the last snapshot, and can finalize again', function () {

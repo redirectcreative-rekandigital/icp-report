@@ -8,7 +8,7 @@ import LevelBadge from '@/components/app/LevelBadge.vue';
 import PinPad from '@/components/app/PinPad.vue';
 import SaveIndicator from '@/components/app/SaveIndicator.vue';
 import ScoreCell from '@/components/app/ScoreCell.vue';
-import SkillRadar from '@/components/app/SkillRadar.vue';
+import SkillLine from '@/components/app/SkillLine.vue';
 import StatCard from '@/components/app/StatCard.vue';
 import StatusBadge from '@/components/app/StatusBadge.vue';
 import { Button } from '@/components/ui/button';
@@ -53,9 +53,9 @@ const now = Date.now();
                         <LevelBadge :level="null" />
                     </div>
                     <div class="flex flex-wrap items-end gap-2">
-                        <LevelBadge level="A2" size="sm" :percent="75" />
-                        <LevelBadge level="A2" size="md" />
-                        <LevelBadge level="A2" size="lg" />
+                        <LevelBadge level="Beginner" size="sm" />
+                        <LevelBadge level="Intermediate" size="md" />
+                        <LevelBadge level="Advanced" size="lg" />
                         <LevelBadge level="A2" size="xl" />
                     </div>
                     <div class="flex flex-wrap gap-2">
@@ -84,24 +84,13 @@ const now = Date.now();
                 <CardContent
                     class="grid grid-cols-3 gap-3 text-xs text-muted-foreground sm:grid-cols-6"
                 >
+                    <div>idle<ScoreCell :model-value="15" label="idle" /></div>
                     <div>
-                        idle<ScoreCell
-                            :model-value="15"
-                            :max="20"
-                            label="idle"
-                        />
-                    </div>
-                    <div>
-                        kosong<ScoreCell
-                            :model-value="null"
-                            :max="20"
-                            label="kosong"
-                        />
+                        kosong<ScoreCell :model-value="null" label="kosong" />
                     </div>
                     <div>
                         menyimpan<ScoreCell
                             :model-value="12.5"
-                            :max="20"
                             saving
                             label="menyimpan"
                         />
@@ -109,7 +98,6 @@ const now = Date.now();
                     <div>
                         gagal<ScoreCell
                             :model-value="18"
-                            :max="20"
                             server-error="Gagal menyimpan."
                             label="gagal"
                         />
@@ -117,18 +105,12 @@ const now = Date.now();
                     <div>
                         terkunci<ScoreCell
                             :model-value="17"
-                            :max="20"
                             locked
                             label="terkunci"
                         />
                     </div>
                     <div>
-                        besar<ScoreCell
-                            :model-value="9"
-                            :max="20"
-                            large
-                            label="besar"
-                        />
+                        besar<ScoreCell :model-value="9" large label="besar" />
                     </div>
                 </CardContent>
             </Card>
@@ -188,7 +170,7 @@ const now = Date.now();
             <Card>
                 <CardHeader
                     ><CardTitle class="text-base"
-                        >StatCard, ClassCard, SkillRadar, Skeleton</CardTitle
+                        >StatCard, ClassCard, SkillLine, Skeleton</CardTitle
                     ></CardHeader
                 >
                 <CardContent class="grid gap-3 sm:grid-cols-2">
@@ -208,14 +190,13 @@ const now = Date.now();
                         :complete="18"
                         :total="25"
                     />
-                    <SkillRadar
-                        :percent="{
-                            listening: 75,
-                            reading: 85,
-                            writing: 55,
-                            speaking: 65,
+                    <SkillLine
+                        :scores="{
+                            listening: 18,
+                            reading: 21,
+                            writing: 12,
+                            speaking: 16,
                         }"
-                        :size="160"
                     />
                     <div class="grid gap-2">
                         <Skeleton class="h-6 w-2/3" /><Skeleton

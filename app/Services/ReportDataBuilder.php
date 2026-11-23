@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Cefr\Band;
 use App\Domain\Cefr\CefrCalculator;
 use App\Domain\Cefr\Level;
 use App\Domain\Cefr\ScoringConfig;
@@ -56,20 +57,19 @@ class ReportDataBuilder
     /** A sample report for Pengaturan → Rapor (no student needed). */
     public function sample(array $layout, string $paper): array
     {
-        $config = ScoringConfig::fromArray((require database_path('seeders/data/cefr_content.php'))['scoring_defaults'][5] + [
-            'max' => array_fill_keys(Skill::values(), 20),
-            'weight' => array_fill_keys(Skill::values(), 25),
-        ]);
-        $raw = ['listening' => 15, 'reading' => 17, 'writing' => 11, 'speaking' => 13];
+        $config = new ScoringConfig(13, 20);
+        $raw = ['listening' => 18, 'reading' => 21, 'writing' => 12, 'speaking' => 16];
         $src = [
             'config' => $config,
             'raw' => $raw,
             'result' => CefrCalculator::calculate($config, $raw),
+            'natgeo' => 'A2',
             'comment' => null,
+            'band_comments' => ScoreService::overallComments(),
             'level_meta' => LevelMeta::query()->orderBy('sort')->get()->toArray(),
             'descriptors' => Descriptor::query()->get()->toArray(),
             'school' => $this->schoolNow(),
-            'classroom' => ['name' => '5A', 'grade' => 5, 'homeroom_teacher' => 'Homeroom Teacher', 'homeroom_id_number' => null, 'english_teacher' => 'English Teacher', 'english_id_number' => null],
+            'classroom' => ['name' => '6A', 'grade' => 6, 'homeroom_teacher' => 'Homeroom Teacher', 'homeroom_id_number' => null, 'english_teacher' => 'English Teacher', 'english_id_number' => null],
             'term' => ['year' => '2026/2027', 'label' => 'Semester 1', 'report_date' => now()->toDateString()],
             'layout' => $layout,
             'finalized_at' => null,
@@ -92,14 +92,14 @@ class ReportDataBuilder
             'config' => $config,
             'raw' => $raw,
             'result' => new StudentResult(
-                ['listening' => $r->listening_pct, 'reading' => $r->reading_pct, 'writing' => $r->writing_pct, 'speaking' => $r->speaking_pct],
                 ['listening' => $r->listening_level, 'reading' => $r->reading_level, 'writing' => $r->writing_level, 'speaking' => $r->speaking_level],
-                $r->overall_pct,
+                $r->total,
                 $r->overall_level,
-                $r->status,
                 $r->strongest_skill,
             ),
+            'natgeo' => $r->natgeo_level,
             'comment' => $r->comment_final,
+            'band_comments' => $snap['band_comments'] ?? [],
             'level_meta' => $snap['level_meta'],
             'descriptors' => $snap['descriptors'],
             'school' => $snap['school'],
@@ -125,7 +125,9 @@ class ReportDataBuilder
             'config' => $config,
             'raw' => $raw,
             'result' => $result,
+            'natgeo' => $c->usesNatGeo() ? $e->score?->natgeo_level : null,
             'comment' => $e->score?->teacher_comment,
+            'band_comments' => ScoreService::overallComments(),
             'level_meta' => LevelMeta::query()->orderBy('sort')->get()->toArray(),
             'descriptors' => Descriptor::query()->get()->toArray(),
             'school' => $this->schoolNow(),
@@ -180,17 +182,18 @@ class ReportDataBuilder
                 'key' => $s,
                 'label' => Skill::from($s)->label(),
                 'score' => self::num($src['raw'][$s]),
-                'max' => self::num($config->max[$s]),
-                'pct' => $res->percent[$s],
-                'pct_text' => number_format($res->percent[$s], 1).'%',
+                'raw' => $src['raw'][$s],
+                'max' => self::num(ScoringConfig::MAX),
                 'level' => $lvl,
+                'bg' => Band::BG[$lvl],
+                'fg' => Band::FG[$lvl],
                 'can_do' => $desc[$lvl.'|'.$s]['can_do'] ?? '',
                 'next_step' => $desc[$lvl.'|'.$s]['next_step'] ?? '',
             ];
         }
 
-        $minIdx = Level::from($config->expectedMin)->index();
-        $maxIdx = Level::from($config->expectedMax)->index();
+        // CEFR map: grade 6 only, marked at the National Geographic placement level.
+        $natgeo = (int) $class['grade'] === Classroom::NATGEO_GRADE ? ($src['natgeo'] ?? null) : null;
         $levels = [];
         foreach (Level::cases() as $l) {
             $m = $meta[$l->value] ?? [];
@@ -200,12 +203,10 @@ class ReportDataBuilder
                 'cambridge' => $m['cambridge'] ?? '',
                 'bg' => self::LEVEL_BG[$l->value],
                 'fg' => self::LEVEL_FG[$l->value],
-                'current' => $l->value === $res->overallLevel,
-                'expected' => $l->index() >= $minIdx && $l->index() <= $maxIdx,
-                // A level with no threshold is not measured by this grade's test.
-                'measured' => $config->thresholds[$l->value] !== null,
+                'current' => $l->value === $natgeo,
             ];
         }
+        $sections['level_map'] = $sections['level_map'] && (int) $class['grade'] === Classroom::NATGEO_GRADE;
 
         $comment = $src['comment'] ?? null;
         if ($comment === null || $draft) {
@@ -213,7 +214,7 @@ class ReportDataBuilder
                 $res,
                 $e->student->name,
                 $draft ? $src['comment'] : null,
-                $meta->map(fn ($m) => $m['overall_comment'])->all(),
+                $src['band_comments'],
                 $sections['strongest_skill'],
             );
         }
@@ -246,7 +247,6 @@ class ReportDataBuilder
         ], ReportLayout::printedSignatures($layout));
 
         $reportDate = $src['term']['report_date'] ?? null;
-        $statusText = ['below' => 'BELOW EXPECTED LEVEL', 'meeting' => 'MEETING EXPECTED LEVEL', 'above' => 'ABOVE EXPECTED LEVEL'][$res->status] ?? '';
         $levelList = implode('  •  ', array_map(fn ($l) => "{$l['level']} {$l['short_name']}", $levels));
         $footnote = (require database_path('seeders/data/cefr_content.php'))['report_footnote'];
 
@@ -281,22 +281,20 @@ class ReportDataBuilder
             'teachers' => ['homeroom' => $class['homeroom_teacher'] ?? '', 'english' => $class['english_teacher'] ?? ''],
             'skills' => $skills,
             'overall' => [
-                'pct' => $res->overallPercent,
-                'pct_text' => number_format((float) $res->overallPercent, 1).'%',
+                'total' => self::num($res->total),
+                'max' => self::num(ScoringConfig::MAX * 4),
                 'level' => $res->overallLevel,
-                'name' => $meta[$res->overallLevel]['name'] ?? '',
-                'bg' => self::LEVEL_BG[$res->overallLevel],
-                'fg' => self::LEVEL_FG[$res->overallLevel],
+                'bg' => Band::BG[$res->overallLevel],
+                'fg' => Band::FG[$res->overallLevel],
             ],
+            'natgeo' => $natgeo,
             'levels' => $levels,
-            'expected_text' => $config->expectedMin === $config->expectedMax ? $config->expectedMin : "{$config->expectedMin} – {$config->expectedMax}",
-            'status' => $res->status,
-            'status_text' => $statusText,
             'comment' => $comment,
             'place_date' => (($school['city'] ?? '') ? "{$school['city']}, " : '').($reportDate ? CarbonImmutable::parse($reportDate)->locale('en')->translatedFormat('j F Y') : '.............................'),
             'signatures' => $signatures,
             'footnote' => "{$footnote}  {$levelList}",
-            'radar' => $sections['radar'] ? $this->radar->render(array_values($res->percent), $layout['theme']['primary']) : null,
+            // shortcut: radar fed with score/25 until stage R2 replaces it with the line chart.
+            'radar' => $sections['radar'] ? $this->radar->render(array_map(fn ($v) => $v / ScoringConfig::MAX * 100, array_values($src['raw'])), $layout['theme']['primary']) : null,
             'finalized_at' => $src['finalized_at']?->toIso8601String(),
             // Auto-shrink long texts so the page stays one page (PRD-05 §6, §8).
             'fs' => [

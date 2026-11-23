@@ -10,11 +10,11 @@ import {
 } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import LevelBadge from '@/components/app/LevelBadge.vue';
+import NativeSelect from '@/components/app/NativeSelect.vue';
 import ScoreCell from '@/components/app/ScoreCell.vue';
-import SkillRadar from '@/components/app/SkillRadar.vue';
-import StatusBadge from '@/components/app/StatusBadge.vue';
+import SkillLine from '@/components/app/SkillLine.vue';
 import TourIconButton from '@/components/app/TourIconButton.vue';
-import type { ClassInfo, LevelMetaRow } from '@/components/scores/types';
+import type { ClassInfo } from '@/components/scores/types';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -27,15 +27,20 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { Field, ScoreRow } from '@/composables/useScoreAutosave';
 import { isTourEvent, useDialogTour } from '@/composables/useTour';
-import { reportComment, SKILL_LABEL, SKILLS } from '@/lib/cefr';
-import type { ScoringConfig, StudentResult } from '@/lib/cefr';
-import { formatPercent } from '@/lib/format';
+import {
+    formatScore,
+    reportComment,
+    SCORE_MAX,
+    SKILL_LABEL,
+    SKILLS,
+} from '@/lib/cefr';
+import type { Band, Level, StudentResult } from '@/lib/cefr';
 
 const props = defineProps<{
     row: ScoreRow | null;
     result: StudentResult | null;
-    config: ScoringConfig;
-    levels: LevelMetaRow[];
+    comments: Partial<Record<Band, string>>;
+    natgeoLevels: Level[] | null;
     classroom: ClassInfo;
     locked: boolean;
     cells: Record<string, { status: string; message?: string }>;
@@ -68,12 +73,9 @@ function onOutside(e: Event): void {
         e.preventDefault();
     }
 }
-const comments = computed(() =>
-    Object.fromEntries(props.levels.map((l) => [l.level, l.overall_comment])),
-);
 const auto = computed(() =>
     props.row && props.result
-        ? reportComment(props.result, props.row.name, '', comments.value)
+        ? reportComment(props.result, props.row.name, '', props.comments)
         : null,
 );
 
@@ -174,7 +176,6 @@ const cellState = (field: Field) =>
                                     ref="inputs"
                                     large
                                     :model-value="row.scores[s]"
-                                    :max="config.max[s]"
                                     :locked="locked"
                                     :saving="cellState(s)?.status === 'saving'"
                                     :server-error="
@@ -191,12 +192,44 @@ const cellState = (field: Field) =>
                                 />
                             </div>
                             <span class="w-10 text-sm text-muted-foreground"
-                                >/{{ config.max[s] }}</span
+                                >/{{ SCORE_MAX }}</span
                             >
-                            <LevelBadge
-                                :level="result.level[s]"
-                                :percent="result.percent[s]"
-                            />
+                            <LevelBadge :level="result.level[s]" />
+                        </div>
+                        <div
+                            v-if="natgeoLevels"
+                            class="flex items-center gap-3"
+                        >
+                            <Label for="natgeo-level" class="w-20 shrink-0"
+                                >NatGeo</Label
+                            >
+                            <NativeSelect
+                                id="natgeo-level"
+                                class="w-36"
+                                :model-value="row.natgeo ?? ''"
+                                :disabled="locked"
+                                :invalid="!!cellState('natgeo')"
+                                @update:model-value="
+                                    (v) =>
+                                        emit(
+                                            'set',
+                                            'natgeo',
+                                            (v || null) as Level | null,
+                                        )
+                                "
+                            >
+                                <option value="">–</option>
+                                <option
+                                    v-for="l in natgeoLevels"
+                                    :key="l"
+                                    :value="l"
+                                >
+                                    {{ l }}
+                                </option>
+                            </NativeSelect>
+                            <span class="text-xs text-muted-foreground"
+                                >Hasil tes National Geographic (CEFR)</span
+                            >
                         </div>
                     </div>
 
@@ -205,21 +238,22 @@ const cellState = (field: Field) =>
                         class="flex items-center gap-4 rounded-xl border bg-muted/40 p-3"
                         data-tour="panel-summary"
                     >
-                        <SkillRadar :percent="result.percent" :size="140" />
+                        <SkillLine :scores="row.scores" :width="190" />
                         <div class="min-w-0 space-y-2 text-sm">
                             <div class="flex items-center gap-2">
-                                <span class="text-muted-foreground"
-                                    >Overall</span
-                                >
+                                <span class="text-muted-foreground">Total</span>
                                 <LevelBadge
                                     :level="result.overall_level"
                                     size="lg"
                                 />
                             </div>
                             <p class="font-semibold tabular-nums">
-                                {{ formatPercent(result.overall_percent) }}
+                                {{
+                                    result.total === null
+                                        ? '–'
+                                        : `${formatScore(result.total)} / ${SCORE_MAX * 4}`
+                                }}
                             </p>
-                            <StatusBadge :status="result.status" />
                             <p
                                 v-if="result.strongest"
                                 class="flex items-center gap-1 text-muted-foreground"

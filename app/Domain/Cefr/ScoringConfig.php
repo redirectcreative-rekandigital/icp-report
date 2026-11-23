@@ -5,62 +5,35 @@ namespace App\Domain\Cefr;
 use App\Models\ScoringConfig as ScoringConfigModel;
 
 /**
- * Immutable scoring rules for one grade in one period (PRD-04 §5.1).
- * Thresholds are percentages per level in Pre-A1 → B2 order; null = level not measured.
+ * Band thresholds for one grade in one period. Each skill is scored MIN–MAX;
+ * a skill score ≥ intermediate is Intermediate, ≥ advanced is Advanced. The total
+ * (4 skills) uses the same thresholds ×4.
  */
 final class ScoringConfig
 {
-    /**
-     * @param  array<string, float>  $max  skill => maximum raw score
-     * @param  array<string, float>  $weight  skill => weight
-     * @param  array<string, float|null>  $thresholds  level => minimum percentage
-     */
+    public const MIN = 5.0;
+
+    public const MAX = 25.0;
+
     public function __construct(
-        public readonly array $max,
-        public readonly array $weight,
-        public readonly array $thresholds,
-        public readonly string $expectedMin,
-        public readonly string $expectedMax,
+        public readonly float $intermediate,
+        public readonly float $advanced,
     ) {}
 
     public static function fromModel(ScoringConfigModel $m): self
     {
-        return self::fromArray([
-            'max' => array_combine(Skill::values(), array_map(fn ($s) => (float) $m->{"max_{$s}"}, Skill::values())),
-            'weight' => array_combine(Skill::values(), array_map(fn ($s) => (float) $m->{"weight_{$s}"}, Skill::values())),
-            'thresholds' => $m->thresholds,
-            'expected_min' => $m->expected_min,
-            'expected_max' => $m->expected_max,
-        ]);
+        return new self((float) $m->min_intermediate, (float) $m->min_advanced);
     }
 
-    /** @param array{max: array, weight: array, thresholds: array, expected_min: string, expected_max: string} $a */
+    /** @param array{intermediate: float|int|string, advanced: float|int|string} $a */
     public static function fromArray(array $a): self
     {
-        $thresholds = [];
-        foreach (Level::values() as $level) {
-            $v = $a['thresholds'][$level] ?? null;
-            $thresholds[$level] = $v === null ? null : (float) $v;
-        }
-
-        return new self(
-            array_map('floatval', $a['max']),
-            array_map('floatval', $a['weight']),
-            $thresholds,
-            $a['expected_min'],
-            $a['expected_max'],
-        );
+        return new self((float) $a['intermediate'], (float) $a['advanced']);
     }
 
-    /** Same shape as fromArray(); sent to the browser for instant feedback. */
+    /** Sent to the browser for instant feedback and frozen in the finalisation snapshot. */
     public function toArray(): array
     {
-        return [
-            'max' => $this->max,
-            'weight' => $this->weight,
-            'thresholds' => $this->thresholds,
-            'expected_min' => $this->expectedMin,
-            'expected_max' => $this->expectedMax,
-        ];
+        return ['min' => self::MIN, 'max' => self::MAX, 'intermediate' => $this->intermediate, 'advanced' => $this->advanced];
     }
 }

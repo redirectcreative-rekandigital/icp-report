@@ -149,13 +149,9 @@
                 <td style="width: {{ $s['level_map'] ? '36mm' : '100%' }}; padding-right: {{ $s['level_map'] ? '3mm' : '0' }};">
                     <div class="overall" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">
                         <div class="cap">OVERALL</div>
-                        <div class="code">{{ $r['overall']['level'] }}</div>
-                        <div class="lname">{{ $r['overall']['name'] }}</div>
-                        <div class="score">Score: {{ $r['overall']['pct_text'] }}</div>
+                        <div class="code">{{ $r['overall']['total'] }}<small style="font-size: 50%"> / {{ $r['overall']['max'] }}</small></div>
+                        <div class="score">{{ $r['overall']['level'] }}</div>
                     </div>
-                    @if (! $s['level_map'] && $s['status'] && $r['status_text'])
-                        <div class="status status-{{ $r['status'] }}">Expected for Grade {{ $r['student']['grade'] }}: {{ $r['expected_text'] }}  •  Status: {{ $r['status_text'] }}</div>
-                    @endif
                 </td>
                 @if ($s['level_map'])
                     <td>
@@ -167,7 +163,7 @@
                             <tr>
                                 @foreach ($r['levels'] as $l)
                                     <td>
-                                        <div class="box {{ $l['current'] ? 'cur' : '' }} {{ ! $l['measured'] ? 'dim' : '' }}" style="background: {{ $l['bg'] }}; color: {{ $l['fg'] }};">
+                                        <div class="box {{ $l['current'] ? 'cur' : '' }}" style="background: {{ $l['bg'] }}; color: {{ $l['fg'] }};">
                                             {{ $l['level'] }}<small>{{ $l['short_name'] }}</small>
                                         </div>
                                     </td>
@@ -175,15 +171,10 @@
                             </tr>
                             <tr>
                                 @foreach ($r['levels'] as $l)
-                                    <td class="mark {{ ! $l['current'] && $l['expected'] ? 'exp' : '' }}">
-                                        @if ($l['current'])▲ CURRENT LEVEL @elseif ($l['expected'])expected range @endif
-                                    </td>
+                                    <td class="mark">@if ($l['current'])▲ CURRENT LEVEL @endif</td>
                                 @endforeach
                             </tr>
                         </table>
-                        @if ($s['status'] && $r['status_text'])
-                            <div class="status status-{{ $r['status'] }}">Expected for Grade {{ $r['student']['grade'] }}: {{ $r['expected_text'] }}  •  Status: {{ $r['status_text'] }}</div>
-                        @endif
                     </td>
                 @endif
             </tr>
@@ -199,22 +190,17 @@
                     <table class="skills">
                         <tr>
                             <th>Skill</th><th>Score</th>
-                            @if ($s['percent_bar'])<th>Percentage</th>@endif
-                            <th style="text-align:center">CEFR Level</th>
+                            <th style="text-align:center">Level</th>
                         </tr>
                         @foreach ($r['skills'] as $sk)
                             <tr>
                                 <td style="font-weight:bold">{{ $sk['label'] }}</td>
                                 <td>{{ $sk['score'] }} / {{ $sk['max'] }}</td>
-                                @if ($s['percent_bar'])
-                                    <td><span class="bar"><span style="width: {{ max(0, min(100, $sk['pct'])) }}%"></span></span>  {{ $sk['pct_text'] }}</td>
-                                @endif
-                                <td style="text-align:center"><span class="badge" style="background: {{ \App\Services\ReportDataBuilder::LEVEL_BG[$sk['level']] }}; color: {{ \App\Services\ReportDataBuilder::LEVEL_FG[$sk['level']] }};">{{ $sk['level'] }}</span></td>
+                                <td style="text-align:center"><span class="badge" style="background: {{ $sk['bg'] }}; color: {{ $sk['fg'] }};">{{ $sk['level'] }}</span></td>
                             </tr>
                         @endforeach
                         <tr class="total">
-                            <td>OVERALL</td><td></td>
-                            @if ($s['percent_bar'])<td>{{ $r['overall']['pct_text'] }}</td>@endif
+                            <td>TOTAL</td><td>{{ $r['overall']['total'] }} / {{ $r['overall']['max'] }}</td>
                             <td style="text-align:center"><span class="badge" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">{{ $r['overall']['level'] }}</span></td>
                         </tr>
                     </table>
@@ -237,7 +223,7 @@
                 <tr><th>Skill</th><th style="width:47%">What the student can do now</th><th>Next step to grow</th></tr>
                 @foreach ($r['skills'] as $sk)
                     <tr>
-                        <td class="sk">{{ $sk['label'] }}<br><span class="badge" style="margin-top:.6mm; background: {{ \App\Services\ReportDataBuilder::LEVEL_BG[$sk['level']] }}; color: {{ \App\Services\ReportDataBuilder::LEVEL_FG[$sk['level']] }};">{{ $sk['level'] }}</span></td>
+                        <td class="sk">{{ $sk['label'] }}<br><span class="badge" style="margin-top:.6mm; background: {{ $sk['bg'] }}; color: {{ $sk['fg'] }};">{{ $sk['level'] }}</span></td>
                         <td>{{ $sk['can_do'] }}</td>
                         <td>{{ $sk['next_step'] }}</td>
                     </tr>

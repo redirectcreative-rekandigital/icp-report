@@ -1,22 +1,24 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type { Level } from '@/lib/cefr';
+import type { Band, Level } from '@/lib/cefr';
 import { cn } from '@/lib/utils';
 
-/** CEFR level pill, always with the level code as text (PRD-07 §2.2, §5.2). */
+/** Band (Beginner/Intermediate/Advanced) or CEFR level pill, always with the name as text (PRD-07 §2.2, §5.2). */
 const props = withDefaults(
     defineProps<{
-        level: Level | null;
+        level: Band | Level | null;
         size?: 'sm' | 'md' | 'lg' | 'xl';
-        percent?: number | null;
     }>(),
     {
         size: 'md',
-        percent: undefined,
     },
 );
 
-const COLORS: Record<Level, string> = {
+const COLORS: Record<Band | Level, string> = {
+    Beginner: 'bg-[var(--band-beginner)] text-[var(--band-beginner-fg)]',
+    Intermediate:
+        'bg-[var(--band-intermediate)] text-[var(--band-intermediate-fg)]',
+    Advanced: 'bg-[var(--band-advanced)] text-[var(--band-advanced-fg)]',
     'Pre-A1': 'bg-[var(--level-pre-a1)] text-[var(--level-pre-a1-fg)]',
     A1: 'bg-[var(--level-a1)] text-[var(--level-a1-fg)]',
     A2: 'bg-[var(--level-a2)] text-[var(--level-a2-fg)]',
@@ -56,12 +58,6 @@ watch(
             "
         >
             {{ level ?? '–' }}
-        </span>
-        <span
-            v-if="percent !== undefined && percent !== null"
-            class="mt-0.5 text-[10px] text-muted-foreground tabular-nums"
-        >
-            {{ percent.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}%
         </span>
     </span>
 </template>

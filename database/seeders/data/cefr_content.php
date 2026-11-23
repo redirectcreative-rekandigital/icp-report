@@ -114,13 +114,8 @@ return [
         ],
     ],
 
-    // Excel "Settings" §4 & §5. null = level not measured (Excel uses 999).
-    'scoring_defaults' => [
-        3 => ['thresholds' => ['Pre-A1' => 0, 'A1' => 60, 'A2' => 85, 'B1' => null, 'B2' => null], 'expected_min' => 'Pre-A1', 'expected_max' => 'A1'],
-        4 => ['thresholds' => ['Pre-A1' => 0, 'A1' => 50, 'A2' => 80, 'B1' => null, 'B2' => null], 'expected_min' => 'A1', 'expected_max' => 'A1'],
-        5 => ['thresholds' => ['Pre-A1' => 0, 'A1' => 30, 'A2' => 55, 'B1' => 85, 'B2' => null], 'expected_min' => 'A1', 'expected_max' => 'A2'],
-        6 => ['thresholds' => ['Pre-A1' => 0, 'A1' => 25, 'A2' => 45, 'B1' => 70, 'B2' => 90], 'expected_min' => 'A2', 'expected_max' => 'B1'],
-    ],
+    // Interim (revisi 23-11-2026): band texts reuse the CEFR texts above until the school sends its own.
+    'band_source' => ['Beginner' => 'A1', 'Intermediate' => 'A2', 'Advanced' => 'B1'],
 
     'report_footnote' => "CEFR levels are indicative and based on the school's CEFR-aligned assessment of Listening, Reading, Writing and Speaking.",
 ];

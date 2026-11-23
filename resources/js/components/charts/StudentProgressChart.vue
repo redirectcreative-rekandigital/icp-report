@@ -6,12 +6,12 @@ import type {
 } from 'chart.js';
 import { computed } from 'vue';
 import { Line } from 'vue-chartjs';
-import { LEVEL_COLORS, nf, SKILL_COLORS } from '@/components/charts/setup';
+import { BAND_COLORS, nf, SKILL_COLORS } from '@/components/charts/setup';
 import type { ProgressPoint } from '@/components/charts/types';
 import { SKILL_LABEL, SKILLS } from '@/lib/cefr';
 
 /**
- * A student's progress (PRD-06 §4.2): overall % per period with points coloured by level,
+ * A student's progress (PRD-06 §4.2): total (20–100) per period with points coloured by band,
  * dashed where the value is still a Draft. One y-axis only — the level is shown on the
  * points and in the tooltip instead of a second axis.
  */
@@ -30,14 +30,14 @@ const data = computed<ChartData<'line'>>(() => ({
         props.mode === 'overall'
             ? [
                   {
-                      label: 'Overall',
-                      data: props.points.map((p) => p.overall_pct),
+                      label: 'Total',
+                      data: props.points.map((p) => p.total),
                       borderColor: '#1F3A68',
                       borderWidth: 2,
                       pointRadius: 7,
                       pointHoverRadius: 9,
                       pointBackgroundColor: props.points.map(
-                          (p) => LEVEL_COLORS[p.overall_level].bg,
+                          (p) => BAND_COLORS[p.overall_level].bg,
                       ),
                       pointBorderColor: '#FFFFFF',
                       pointBorderWidth: 2,
@@ -46,7 +46,7 @@ const data = computed<ChartData<'line'>>(() => ({
               ]
             : SKILLS.map((s) => ({
                   label: SKILL_LABEL[s],
-                  data: props.points.map((p) => p.pct[s]),
+                  data: props.points.map((p) => p.scores[s]),
                   borderColor: SKILL_COLORS[s],
                   backgroundColor: SKILL_COLORS[s],
                   borderWidth: 2,
@@ -64,9 +64,9 @@ const options = computed<ChartOptions<'line'>>(() => ({
     scales: {
         x: { grid: { display: false } },
         y: {
-            min: 0,
-            max: 100,
-            ticks: { callback: (v) => `${v}%` },
+            // Total 20–100, a single skill 5–25.
+            min: props.mode === 'overall' ? 20 : 5,
+            max: props.mode === 'overall' ? 100 : 25,
             grid: { color: '#EEF2F7' },
         },
     },
@@ -76,11 +76,11 @@ const options = computed<ChartOptions<'line'>>(() => ({
             callbacks: {
                 label: (ctx) => {
                     const p = props.points[ctx.dataIndex];
-                    const pct = `${nf(Number(ctx.raw))}%`;
+                    const v = nf(Number(ctx.raw));
 
                     return props.mode === 'overall'
-                        ? `Overall ${pct} • Level ${p.overall_level}`
-                        : `${ctx.dataset.label}: ${pct}`;
+                        ? `Total ${v} • ${p.overall_level}`
+                        : `${ctx.dataset.label}: ${v}`;
                 },
                 footer: (items) =>
                     isDraft(items[0]?.dataIndex ?? -1)

@@ -31,9 +31,8 @@ const options: ChartOptions<'bar'> = {
     scales: {
         x: { grid: { display: false } },
         y: {
-            min: 0,
-            max: 100,
-            ticks: { callback: (v) => `${v}%` },
+            min: 5,
+            max: 25,
             grid: { color: '#EEF2F7' },
         },
     },
@@ -42,7 +41,7 @@ const options: ChartOptions<'bar'> = {
         tooltip: {
             callbacks: {
                 label: (ctx) =>
-                    `${ctx.dataset.label}: ${ctx.raw === null ? '–' : `${nf(Number(ctx.raw))}%`}`,
+                    `${ctx.dataset.label}: ${ctx.raw === null ? '–' : nf(Number(ctx.raw))}`,
             },
         },
     },

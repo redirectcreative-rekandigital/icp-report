@@ -16,7 +16,7 @@ export type ReportStudent = {
     name: string;
     nis: string;
     is_active: boolean;
-    overall_level: 'Pre-A1' | 'A1' | 'A2' | 'B1' | 'B2' | null;
-    status: 'below' | 'meeting' | 'above' | 'incomplete' | null;
+    overall_level: 'Beginner' | 'Intermediate' | 'Advanced' | null;
+    total: number | null;
     printable: boolean;
 };

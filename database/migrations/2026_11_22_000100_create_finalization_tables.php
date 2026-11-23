@@ -32,14 +32,11 @@ return new class extends Migration
                 $table->decimal($s, 4, 1);
             }
             foreach (['listening', 'reading', 'writing', 'speaking'] as $s) {
-                $table->double("{$s}_pct");
+                $table->string("{$s}_level", 12); // band
             }
-            foreach (['listening', 'reading', 'writing', 'speaking'] as $s) {
-                $table->string("{$s}_level", 10);
-            }
-            $table->double('overall_pct');
-            $table->string('overall_level', 10);
-            $table->string('status', 12);
+            $table->decimal('total', 5, 1);
+            $table->string('overall_level', 12); // band of the total
+            $table->string('natgeo_level', 10)->nullable(); // grade 6 only
             $table->string('strongest_skill', 12);
             $table->text('comment_final')->nullable();
             $table->boolean('is_current')->default(true);

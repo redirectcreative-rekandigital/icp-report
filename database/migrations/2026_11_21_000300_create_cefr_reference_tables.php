@@ -13,7 +13,6 @@ return new class extends Migration
             $table->string('short_name', 40);
             $table->string('name', 80);
             $table->string('cambridge', 80);
-            $table->text('overall_comment');
             $table->string('color_hex', 7);
             $table->unsignedTinyInteger('sort');
             $table->timestamps();
@@ -21,7 +20,7 @@ return new class extends Migration
 
         Schema::create('descriptors', function (Blueprint $table) {
             $table->id();
-            $table->string('level', 10);
+            $table->string('level', 12); // band: Beginner | Intermediate | Advanced
             $table->string('skill', 12);
             $table->text('can_do');
             $table->text('next_step');

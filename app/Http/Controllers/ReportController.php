@@ -52,7 +52,7 @@ class ReportController extends Controller
                 'nis' => $e->student->nis,
                 'is_active' => $e->student->is_active,
                 'overall_level' => $final?->overall_level ?? $r?->overallLevel,
-                'status' => $final?->status ?? $r?->status,
+                'total' => $final ? $final->total : $r?->total,
                 'printable' => $e->student->is_active && ($final !== null || ($r && $r->isComplete())),
             ];
         });

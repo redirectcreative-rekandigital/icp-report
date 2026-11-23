@@ -46,7 +46,8 @@ it('lists printable students on the Rapor tab', function () {
         ->where('tab', 'rapor')
         ->where('paperDefault', 'f4')
         ->has('students', 3)
-        ->where('students.0.overall_level', 'A2')
+        ->where('students.0.overall_level', 'Intermediate')
+        ->where('students.0.total', 56)
         ->where('students.0.printable', true)
         ->where('students.2.printable', false));
 });
@@ -59,7 +60,10 @@ it('renders the HTML preview with the same content as the PDF, marked DRAFT', fu
         ->toContain('SD MUHAMMADIYAH WONOREJO')
         ->toContain('Strongest skill this term: Reading.')
         ->toContain('Sidoarjo, 18 December 2026')
-        ->toContain('MEETING EXPECTED LEVEL')
+        ->toContain('<div class="score">Intermediate</div>')
+        ->toContain('56 / 100')
+        ->not->toContain('EXPECTED LEVEL')
+        ->not->toContain('CEFR LEVEL MAP') // grade 5: no National Geographic map
         ->toContain('NBM. 987')
         ->toContain('class="draft"');
 });
@@ -94,14 +98,14 @@ it('uses the finalisation snapshot: later layout, threshold and logo changes do 
     $this->post("/kelas/{$this->class->id}/finalkan")->assertSessionHas('success');
 
     $this->settings()->set(['report_layout' => array_replace(ReportLayout::defaults(), ['header' => ['title' => 'NEW TITLE', 'extra_line' => '', 'show_muhammadiyah_logo' => false]])]);
-    ScoringConfig::where(['term_id' => $this->term->id, 'grade' => 5])->update(['thresholds' => json_encode(['Pre-A1' => 0, 'A1' => 80, 'A2' => 95, 'B1' => null, 'B2' => null])]);
+    ScoringConfig::where(['term_id' => $this->term->id, 'grade' => 5])->update(['min_intermediate' => 18, 'min_advanced' => 22]);
     $this->delete('/pengaturan/sekolah/logo/school');
 
     $html = $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/html")->getContent();
     expect($html)->toContain('TITLE AT FINALISATION')
         ->not->toContain('NEW TITLE')
         ->not->toContain('class="draft"')
-        ->toContain('Score: 70.0%')
+        ->toContain('<div class="score">Intermediate</div>') // live thresholds would now say Beginner
         ->toContain('data:image/png;base64'); // the frozen logo copy is still used
 });
 

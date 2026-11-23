@@ -2,10 +2,10 @@
 import type { ChartData, ChartOptions } from 'chart.js';
 import { computed } from 'vue';
 import { Bar } from 'vue-chartjs';
-import { LEVEL_COLORS, nf, segmentLabels } from '@/components/charts/setup';
+import { BAND_COLORS, nf, segmentLabels } from '@/components/charts/setup';
 import type { ClassDist } from '@/components/charts/types';
-import { LEVELS } from '@/lib/cefr';
-import type { Level } from '@/lib/cefr';
+import { BANDS } from '@/lib/cefr';
+import type { Band } from '@/lib/cefr';
 
 /**
  * "Sebaran level per kelas" — 100 % stacked horizontal bars (PRD-06 §3.3).
@@ -13,23 +13,21 @@ import type { Level } from '@/lib/cefr';
  */
 const props = defineProps<{ classes: ClassDist[] }>();
 const emit = defineEmits<{
-    select: [payload: { class: string; level: Level; names: string[] }];
+    select: [payload: { class: string; level: Band; names: string[] }];
 }>();
 
 const totals = computed(() =>
-    props.classes.map((c) =>
-        LEVELS.reduce((n, l) => n + c.levels[l].length, 0),
-    ),
+    props.classes.map((c) => BANDS.reduce((n, l) => n + c.levels[l].length, 0)),
 );
 
 const data = computed<ChartData<'bar'>>(() => ({
     labels: props.classes.map((c) => (c.correcting ? `${c.class} *` : c.class)),
-    datasets: LEVELS.map((l) => ({
+    datasets: BANDS.map((l) => ({
         label: l,
         data: props.classes.map((c, i) =>
             totals.value[i] ? (c.levels[l].length / totals.value[i]) * 100 : 0,
         ),
-        backgroundColor: LEVEL_COLORS[l].bg,
+        backgroundColor: BAND_COLORS[l].bg,
         borderColor: '#FFFFFF',
         borderWidth: { left: 1, right: 1 }, // 2 px surface gap between segments
         borderSkipped: false,
@@ -61,7 +59,7 @@ const options = computed<ChartOptions<'bar'>>(() => ({
             callbacks: {
                 label: (ctx) => {
                     const c = props.classes[ctx.dataIndex];
-                    const n = c.levels[ctx.dataset.label as Level].length;
+                    const n = c.levels[ctx.dataset.label as Band].length;
 
                     return `${ctx.dataset.label}: ${n} siswa (${nf(Number(ctx.raw), 0)}%)`;
                 },
@@ -74,7 +72,7 @@ const options = computed<ChartOptions<'bar'>>(() => ({
 
         if (el) {
             const c = props.classes[el.index];
-            const level = LEVELS[el.datasetIndex];
+            const level = BANDS[el.datasetIndex];
             emit('select', { class: c.class, level, names: c.levels[level] });
         }
     },
@@ -86,7 +84,7 @@ const options = computed<ChartOptions<'bar'>>(() => ({
     },
 }));
 
-const plugins = [segmentLabels(LEVELS.map((l) => LEVEL_COLORS[l].fg))];
+const plugins = [segmentLabels(BANDS.map((l) => BAND_COLORS[l].fg))];
 const height = computed(() => Math.max(160, props.classes.length * 34 + 70));
 </script>
 

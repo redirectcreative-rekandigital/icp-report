@@ -14,5 +14,5 @@ class LevelMeta extends Model
 
     protected $keyType = 'string';
 
-    protected $fillable = ['level', 'short_name', 'name', 'cambridge', 'overall_comment', 'color_hex', 'sort'];
+    protected $fillable = ['level', 'short_name', 'name', 'cambridge', 'color_hex', 'sort'];
 }

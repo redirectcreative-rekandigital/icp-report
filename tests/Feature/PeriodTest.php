@@ -34,11 +34,8 @@ it('creates a semester with default scoring configs for grades 3–6 and activat
         ->and($term->scoringConfigs()->count())->toBe(4);
 
     $g5 = ScoringConfig::where(['term_id' => $term->id, 'grade' => 5])->first();
-    expect($g5->thresholds)->toBe(['Pre-A1' => 0, 'A1' => 30, 'A2' => 55, 'B1' => 85, 'B2' => null])
-        ->and($g5->expected_min)->toBe('A1')
-        ->and($g5->expected_max)->toBe('A2')
-        ->and((float) $g5->max_listening)->toBe(20.0)
-        ->and((float) $g5->weight_speaking)->toBe(25.0);
+    expect($g5->min_intermediate)->toBe(13.0)
+        ->and($g5->min_advanced)->toBe(20.0);
 
     $this->post("/periode/tahun/{$year->id}/semester", ['semester' => 1])->assertSessionHasErrors('semester');
 });
@@ -46,14 +43,14 @@ it('creates a semester with default scoring configs for grades 3–6 and activat
 it('copies scoring configs from the latest period', function () {
     $year = AcademicYear::create(['name' => '2026/2027']);
     $this->post("/periode/tahun/{$year->id}/semester", ['semester' => 1]);
-    ScoringConfig::where('grade', 4)->update(['thresholds' => ['Pre-A1' => 0, 'A1' => 55, 'A2' => 82, 'B1' => null, 'B2' => null]]);
+    ScoringConfig::where('grade', 4)->update(['min_intermediate' => 14.5, 'min_advanced' => 21]);
 
     $this->post("/periode/tahun/{$year->id}/semester", ['semester' => 2])
         ->assertSessionHas('success', fn ($m) => str_contains($m, 'disalin dari 2026/2027 • Semester 1'));
 
     $s2 = Term::where('semester', 2)->first();
     expect($s2->is_active)->toBeFalse()
-        ->and(ScoringConfig::where(['term_id' => $s2->id, 'grade' => 4])->first()->thresholds['A1'])->toBe(55);
+        ->and(ScoringConfig::where(['term_id' => $s2->id, 'grade' => 4])->first()->min_intermediate)->toBe(14.5);
 });
 
 it('keeps only one active period', function () {

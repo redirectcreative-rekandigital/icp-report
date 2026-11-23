@@ -1,12 +1,4 @@
-import type { Level, ScoringConfig, StudentResult } from '@/lib/cefr';
-
-export type LevelMetaRow = {
-    level: Level;
-    short_name: string;
-    name: string;
-    cambridge: string;
-    overall_comment: string;
-};
+import type { Band, Level, ScoringConfig, StudentResult } from '@/lib/cefr';
 
 export type ClassInfo = {
     id: number;
@@ -30,7 +22,10 @@ export type ClassInfo = {
 export type GridProps = {
     classroom: ClassInfo;
     config: ScoringConfig;
-    levels: LevelMetaRow[];
+    /** Automatic comment per band (fallback when the teacher writes none). */
+    comments: Partial<Record<Band, string>>;
+    /** Grade 6 only: the National Geographic CEFR levels; null for other grades. */
+    natgeoLevels: Level[] | null;
 };
 
 export type ResultMap = Map<number, StudentResult>;

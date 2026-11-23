@@ -31,6 +31,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { printPdf } from '@/composables/usePrintPdf';
+import { formatScore } from '@/lib/cefr';
 import { cn } from '@/lib/utils';
 
 /** Tab "Rapor & Cetak" (PRD-05 §3, PRD-08 §5.4). */
@@ -205,8 +206,8 @@ function continueBatch(): void {
                     </th>
                     <th class="w-12 px-2 py-2 text-left">No</th>
                     <th class="px-2 py-2 text-left">Nama</th>
-                    <th class="w-24 px-2 py-2">Overall</th>
-                    <th class="w-36 px-2 py-2">Status</th>
+                    <th class="w-28 px-2 py-2">Level</th>
+                    <th class="w-24 px-2 py-2">Total</th>
                     <th class="w-40 px-2 py-2 text-right">Aksi</th>
                 </tr>
             </thead>
@@ -240,11 +241,10 @@ function continueBatch(): void {
                         />
                     </td>
                     <td class="px-2 py-2 text-center">
-                        <StatusBadge
-                            v-if="s.status"
-                            :status="s.printable ? s.status : 'incomplete'"
-                            size="sm"
-                        />
+                        <span v-if="s.printable" class="tabular-nums">{{
+                            formatScore(s.total)
+                        }}</span>
+                        <StatusBadge v-else status="incomplete" size="sm" />
                     </td>
                     <td class="px-2 py-2">
                         <div

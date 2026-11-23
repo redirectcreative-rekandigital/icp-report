@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Cefr\Level;
 use App\Models\Classroom;
 use App\Models\Finalization;
-use App\Models\LevelMeta;
 use App\Models\Term;
 use App\Services\ActivityLogger;
 use App\Services\ScoreService;
@@ -75,7 +75,9 @@ class ClassController extends Controller
 
         if ($tab === 'nilai') {
             $props['config'] = $scores->config($classroom)->toArray();
-            $props['levels'] = LevelMeta::query()->orderBy('sort')->get(['level', 'short_name', 'name', 'cambridge', 'overall_comment']);
+            $props['comments'] = ScoreService::overallComments();
+            // Grade 6 only: National Geographic CEFR placement level per student.
+            $props['natgeoLevels'] = $classroom->usesNatGeo() ? Level::values() : null;
             $props['rows'] = $scores->rows($classroom);
         }
 

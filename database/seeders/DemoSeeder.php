@@ -19,28 +19,28 @@ use Illuminate\Database\Seeder;
 class DemoSeeder extends Seeder
 {
     private const STUDENTS = [
-        ['3001', 'Aditya Pratama', '3A', [16, 15, 14, 15]],
-        ['3002', 'Bunga Lestari', '3A', [18, 17, 16, 17]],
-        ['3003', 'Citra Ayu', '3A', [10, 11, 9, 12]],
-        ['3004', 'Dimas Saputra', '3B', [13, 12, 12, 11]],
-        ['3005', 'Eka Wulandari', '3B', [7, 8, 6, 9]],
-        ['4001', 'Farhan Hidayat', '4A', [14, 15, 12, 13]],
-        ['4002', 'Gita Permata', '4A', [17, 18, 16, 17]],
-        ['4003', 'Hana Safitri', '4A', [9, 10, 8, 9]],
-        ['4004', 'Irfan Maulana', '4B', [12, 11, 10, 12]],
-        ['4005', 'Jihan Aulia', '4B', [16, 15, 14, 16]],
-        ['5001', 'Kevin Wijaya', '5A', [15, 17, 11, 13]],
-        ['5002', 'Laras Anindya', '5A', [18, 18, 17, 18]],
-        ['5003', 'Muhammad Rizki', '5A', [8, 9, 6, 8]],
-        ['5004', 'Nadia Putri', '5B', [13, 14, 12, 14]],
-        ['5005', 'Oka Mahendra', '5B', [11, 12, 10, 12]],
-        ['6001', 'Putri Amelia', '6A', [16, 17, 15, 16]],
-        ['6002', 'Rafi Akbar', '6A', [19, 19, 18, 18]],
-        ['6003', 'Salsabila Nur', '6A', [11, 12, 10, 11]],
-        ['6004', 'Tegar Firmansyah', '6B', [8, 7, 6, 8]],
-        ['6005', 'Vania Kusuma', '6B', [14, 15, 13, 14]],
-        ['5006', 'Wulan Sari', '5A', null],
-        ['5007', 'Yusuf Ramadhan', '5A', null],
+        ['3001', 'Aditya Pratama', '3A', [16, 15, 14, 15], null],
+        ['3002', 'Bunga Lestari', '3A', [18, 17, 16, 17], null],
+        ['3003', 'Citra Ayu', '3A', [10, 11, 9, 12], null],
+        ['3004', 'Dimas Saputra', '3B', [13, 12, 12, 11], null],
+        ['3005', 'Eka Wulandari', '3B', [7, 8, 6, 9], null],
+        ['4001', 'Farhan Hidayat', '4A', [14, 15, 12, 13], null],
+        ['4002', 'Gita Permata', '4A', [17, 18, 16, 17], null],
+        ['4003', 'Hana Safitri', '4A', [9, 10, 8, 9], null],
+        ['4004', 'Irfan Maulana', '4B', [12, 11, 10, 12], null],
+        ['4005', 'Jihan Aulia', '4B', [16, 15, 14, 16], null],
+        ['5001', 'Kevin Wijaya', '5A', [15, 17, 11, 13], null],
+        ['5002', 'Laras Anindya', '5A', [23, 22, 20, 24], null],
+        ['5003', 'Muhammad Rizki', '5A', [8, 9, 6, 8], null],
+        ['5004', 'Nadia Putri', '5B', [13, 14, 12, 14], null],
+        ['5005', 'Oka Mahendra', '5B', [11, 12, 10, 12], null],
+        ['6001', 'Putri Amelia', '6A', [16, 17, 15, 16], 'A2'],
+        ['6002', 'Rafi Akbar', '6A', [21, 22, 19, 20], 'B1'],
+        ['6003', 'Salsabila Nur', '6A', [11, 12, 10, 11], 'A1'],
+        ['6004', 'Tegar Firmansyah', '6B', [8, 7, 6, 8], 'Pre-A1'],
+        ['6005', 'Vania Kusuma', '6B', [14, 15, 13, 14], 'A2'],
+        ['5006', 'Wulan Sari', '5A', null, null],
+        ['5007', 'Yusuf Ramadhan', '5A', null, null],
     ];
 
     public function run(TermService $terms, EnrollmentService $enrollments): void
@@ -70,7 +70,7 @@ class DemoSeeder extends Seeder
 
         $classes = $term->classrooms()->get()->keyBy('name');
 
-        foreach (self::STUDENTS as [$nis, $name, $class, $scores]) {
+        foreach (self::STUDENTS as [$nis, $name, $class, $scores, $natgeo]) {
             $student = Student::query()->firstOrCreate(['nis' => $nis], ['name' => $name, 'is_active' => true]);
             $enrollment = Enrollment::query()->where(['term_id' => $term->id, 'student_id' => $student->id])->first()
                 ?? $enrollments->assign($student, $classes[$class], log: false);
@@ -82,6 +82,7 @@ class DemoSeeder extends Seeder
                     'reading' => $scores[1],
                     'writing' => $scores[2],
                     'speaking' => $scores[3],
+                    'natgeo_level' => $natgeo,
                     'version' => 1,
                 ]);
             }

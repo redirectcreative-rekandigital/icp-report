@@ -130,7 +130,7 @@ class LegacyExcelImportService
                 }
 
                 $existingScore = $enrollment && $enrollment->classroom_id === $class->id ? $enrollment->score : $enrollment?->score;
-                $diff = ScoreDiff::compare($existingScore, array_intersect_key($r, array_flip(ScoreDiff::FIELDS)), $this->scores->config($class), $overwrite, $where);
+                $diff = ScoreDiff::compare($existingScore, array_intersect_key($r, array_flip(ScoreDiff::FIELDS)), $class->usesNatGeo(), $overwrite, $where);
                 $errors = [...$errors, ...$diff['errors']];
                 $warnings = [...$warnings, ...$diff['warnings']];
                 $changes = [...$changes, ...$diff['changes']];

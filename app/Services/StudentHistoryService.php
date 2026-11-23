@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Domain\Cefr\Band;
 use App\Domain\Cefr\CefrCalculator;
-use App\Domain\Cefr\Level;
 use App\Domain\Cefr\Skill;
 use App\Models\Enrollment;
 use App\Models\FinalResult;
@@ -28,20 +28,21 @@ class StudentHistoryService
             $final = $finals->get($e->id);
 
             if ($final) {
-                $pct = array_combine(Skill::values(), array_map(fn ($s) => $final->{"{$s}_pct"}, Skill::values()));
+                $scores = array_combine(Skill::values(), array_map(fn ($s) => $final->{$s}, Skill::values()));
                 $levels = array_combine(Skill::values(), array_map(fn ($s) => $final->{"{$s}_level"}, Skill::values()));
-                $overallPct = $final->overall_pct;
+                $total = $final->total;
                 $overallLevel = $final->overall_level;
-                $status = $final->status;
+                $natgeo = $final->natgeo_level;
                 $source = $c->isFinal() ? 'final' : 'correcting';
             } else {
-                $r = CefrCalculator::calculate($this->scores->config($c), $this->scores->scorePayload($e->score)['scores']);
+                $payload = $this->scores->scorePayload($e->score);
+                $r = CefrCalculator::calculate($this->scores->config($c), $payload['scores']);
 
                 if (! $r->isComplete()) {
                     continue;
                 }
 
-                [$pct, $levels, $overallPct, $overallLevel, $status, $source] = [$r->percent, $r->level, $r->overallPercent, $r->overallLevel, $r->status, 'draft'];
+                [$scores, $levels, $total, $overallLevel, $natgeo, $source] = [$payload['scores'], $r->level, $r->total, $r->overallLevel, $c->usesNatGeo() ? $payload['natgeo'] : null, 'draft'];
             }
 
             $points[] = [
@@ -50,11 +51,11 @@ class StudentHistoryService
                 'term_full' => $e->term->fullLabel(),
                 'semester' => $e->term->semester,
                 'classroom' => ['id' => $c->id, 'name' => $c->name, 'grade' => $c->grade],
-                'pct' => $pct,
+                'scores' => $scores,
                 'levels' => $levels,
-                'overall_pct' => round($overallPct, 1),
+                'total' => round($total, 1),
                 'overall_level' => $overallLevel,
-                'status' => $status,
+                'natgeo' => $natgeo,
                 'source' => $source,
                 'pdf_url' => $c->isFinal() ? route('reports.pdf', [$c, $e]) : null,
             ];
@@ -89,16 +90,16 @@ class StudentHistoryService
             default => "{$first} tetap di level {$b['overall_level']} dari {$where($a)} ke {$where($b)}.",
         };
 
-        $gains = collect(Skill::values())->mapWithKeys(fn ($s) => [$s => ($b['pct'][$s] ?? 0) - ($a['pct'][$s] ?? 0)]);
+        $gains = collect(Skill::values())->mapWithKeys(fn ($s) => [$s => ($b['scores'][$s] ?? 0) - ($a['scores'][$s] ?? 0)]);
         $best = $gains->sortDesc()->keys()->first();
 
         if ($gains[$best] > 0) {
             $points = str_replace('.', ',', (string) round($gains[$best]));
-            $sentence .= ' Skill dengan kenaikan terbesar: '.Skill::from($best)->label()." (+{$points} poin persen).";
+            $sentence .= ' Skill dengan kenaikan terbesar: '.Skill::from($best)->label()." (+{$points} poin).";
         }
 
         if ($a['classroom']['grade'] !== $b['classroom']['grade']) {
-            $sentence .= ' Catatan: tes dan ambang batas tiap jenjang berbeda, jadi bandingkan levelnya, bukan persennya.';
+            $sentence .= ' Catatan: ambang batas tiap jenjang bisa berbeda, jadi bandingkan levelnya, bukan angkanya.';
         }
 
         return $sentence;
@@ -120,8 +121,8 @@ class StudentHistoryService
 
     private function direction(?string $from, ?string $to): string
     {
-        $a = $from ? Level::from($from)->index() : 0;
-        $b = $to ? Level::from($to)->index() : 0;
+        $a = $from ? Band::from($from)->index() : 0;
+        $b = $to ? Band::from($to)->index() : 0;
 
         return $b > $a ? 'up' : ($b < $a ? 'down' : 'same');
     }

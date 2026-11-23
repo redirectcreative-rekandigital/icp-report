@@ -17,7 +17,7 @@ class ScoreController extends Controller
     public function update(Request $request, Classroom $classroom, Enrollment $enrollment, ScoreService $scores): JsonResponse
     {
         $data = $request->validate([
-            'field' => ['required', Rule::in(['listening', 'reading', 'writing', 'speaking', 'comment'])],
+            'field' => ['required', Rule::in(['listening', 'reading', 'writing', 'speaking', 'natgeo', 'comment'])],
             'value' => ['present', 'nullable'],
             'version' => ['required', 'integer', 'min:0'],
         ]);

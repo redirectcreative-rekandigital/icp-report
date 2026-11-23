@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
-import { useMediaQuery, useStorage } from '@vueuse/core';
+import { useMediaQuery } from '@vueuse/core';
 import {
     CheckCircle2,
     Download,
@@ -21,7 +21,6 @@ import NativeSelect from '@/components/app/NativeSelect.vue';
 import ResponsiveDialog from '@/components/app/ResponsiveDialog.vue';
 import SaveIndicator from '@/components/app/SaveIndicator.vue';
 import ScoreCell from '@/components/app/ScoreCell.vue';
-import StatusBadge from '@/components/app/StatusBadge.vue';
 import FinalizeDialog from '@/components/scores/FinalizeDialog.vue';
 import ScoreMobile from '@/components/scores/ScoreMobile.vue';
 import StudentPanel from '@/components/scores/StudentPanel.vue';
@@ -30,13 +29,24 @@ import UnfinalizeDialog from '@/components/scores/UnfinalizeDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import type { Field, ScoreRow } from '@/composables/useScoreAutosave';
-import { useScoreAutosave } from '@/composables/useScoreAutosave';
-import { calculate, LEVELS, parseScore, SKILL_LABEL, SKILLS } from '@/lib/cefr';
-import type { Level, Skill } from '@/lib/cefr';
+import {
+    assignField,
+    fieldValue,
+    useScoreAutosave,
+} from '@/composables/useScoreAutosave';
+import {
+    BANDS,
+    calculate,
+    formatScore,
+    parseScore,
+    SCORE_MAX,
+    SKILL_LABEL,
+    SKILLS,
+} from '@/lib/cefr';
+import type { Band, Level, Skill } from '@/lib/cefr';
 import { clone } from '@/lib/clone';
-import { formatDateTime, formatPercent } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const props = defineProps<GridProps & { rows: ScoreRow[] }>();
@@ -96,36 +106,31 @@ function setScore(
     field: Field,
     value: number | string | null,
 ): void {
-    if (locked.value) {
+    if (locked.value || fieldValue(row, field) === value) {
         return;
     }
 
-    const current = field === 'comment' ? row.comment : row.scores[field];
-
-    if (current === value) {
-        return;
-    }
-
-    if (field === 'comment') {
-        row.comment = value as string | null;
-    } else {
-        row.scores[field] = value as number | null;
-    }
-
+    assignField(row, field, value);
     autosave.enqueue(row, field, value);
+}
+
+/** Complete = four scores, plus the NatGeo level in grade 6 (same rule as finalisation). */
+function isComplete(row: ScoreRow): boolean {
+    return (
+        results.value.get(row.enrollment_id)!.total !== null &&
+        (!props.natgeoLevels || row.natgeo !== null)
+    );
 }
 
 /* ---------- filters & summary ---------- */
 const q = ref('');
 const show = ref<'all' | 'incomplete' | 'complete'>('all');
-const showPercent = useStorage('scores.showPercent', !isPhone.value);
 
 const visible = computed(() => {
     const term = q.value.trim().toLowerCase();
 
     return rows.value.filter((r) => {
-        const complete =
-            results.value.get(r.enrollment_id)!.status !== 'incomplete';
+        const complete = isComplete(r);
 
         return (
             (!term ||
@@ -138,25 +143,28 @@ const visible = computed(() => {
 
 const summary = computed(() => {
     const all = [...results.value.values()];
-    const complete = all.filter((r) => r.status !== 'incomplete');
+    const scored = all.filter((r) => r.total !== null);
     const dist = Object.fromEntries(
-        LEVELS.map((l) => [
-            l,
-            complete.filter((r) => r.overall_level === l).length,
+        BANDS.map((b) => [
+            b,
+            scored.filter((r) => r.overall_level === b).length,
         ]),
-    ) as Record<Level, number>;
-    const avg = complete.length
-        ? complete.reduce((s, r) => s + (r.overall_percent ?? 0), 0) /
-          complete.length
+    ) as Record<Band, number>;
+    const avg = scored.length
+        ? scored.reduce((s, r) => s + (r.total ?? 0), 0) / scored.length
         : null;
 
-    return { complete: complete.length, total: all.length, avg, dist };
+    return {
+        complete: rows.value.filter(isComplete).length,
+        total: all.length,
+        avg,
+        dist,
+    };
 });
 
-const expected = computed(() =>
-    props.config.expected_min === props.config.expected_max
-        ? props.config.expected_min
-        : `${props.config.expected_min} – ${props.config.expected_max}`,
+const thresholds = computed(
+    () =>
+        `Intermediate ≥ ${formatScore(props.config.intermediate)} • Advanced ≥ ${formatScore(props.config.advanced)}`,
 );
 
 /* ---------- keyboard navigation & paste (PRD-04 §4.2) ---------- */
@@ -213,7 +221,7 @@ function onPaste(rowIdx: number, colIdx: number, text: string): void {
                 return;
             }
 
-            const p = parseScore(raw, props.config.max[field]);
+            const p = parseScore(raw);
 
             if (p.ok) {
                 cells.push({ row, field, value: p.value });
@@ -337,7 +345,8 @@ defineExpose({ pendingCount: autosave.pendingCount });
         >
             <span
                 class="rounded-full bg-kpi-icon px-3 py-1 text-sm font-semibold text-primary"
-                >Level harapan: {{ expected }}</span
+                :title="`Batas level per skill (nilai 5–${SCORE_MAX})`"
+                >{{ thresholds }}</span
             >
             <SaveIndicator
                 :saving="autosave.saving.value"
@@ -456,12 +465,16 @@ defineExpose({ pendingCount: autosave.pendingCount });
                 >Belum lengkap {{ summary.total - summary.complete }}</span
             >
             <span
-                >Rata-rata overall
-                <strong>{{ formatPercent(summary.avg) }}</strong></span
+                >Rata-rata total
+                <strong>{{
+                    summary.avg === null
+                        ? '–'
+                        : formatScore(Math.round(summary.avg * 10) / 10)
+                }}</strong></span
             >
             <span class="flex flex-wrap gap-1">
                 <span
-                    v-for="l in LEVELS"
+                    v-for="l in BANDS"
                     v-show="summary.dist[l]"
                     :key="l"
                     class="inline-flex items-center gap-1"
@@ -492,9 +505,6 @@ defineExpose({ pendingCount: autosave.pendingCount });
                 <option value="incomplete">Belum lengkap</option>
                 <option value="complete">Lengkap</option>
             </NativeSelect>
-            <label class="ml-auto hidden items-center gap-2 text-sm md:flex">
-                <Switch v-model="showPercent" /> Tampilkan persentase
-            </label>
         </div>
 
         <ScoreMobile
@@ -502,7 +512,7 @@ defineExpose({ pendingCount: autosave.pendingCount });
             data-tour="score-list"
             :rows="visible"
             :results="results"
-            :config="config"
+            :natgeo="!!natgeoLevels"
             :locked="locked"
             @open="openPanel"
         />
@@ -536,7 +546,7 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                     }}
                                 </span>
                                 <span class="block font-normal"
-                                    >/{{ config.max[s] }}</span
+                                    >5–{{ SCORE_MAX }}</span
                                 >
                             </th>
                             <th
@@ -551,10 +561,14 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                 data-tour="score-levels"
                                 class="w-24 bg-input-computed px-2 py-2"
                             >
-                                Overall
+                                Total
                             </th>
-                            <th class="w-32 bg-input-computed px-2 py-2">
-                                Status
+                            <th
+                                v-if="natgeoLevels"
+                                class="w-28 px-2 py-2"
+                                title="Hasil tes National Geographic (CEFR)"
+                            >
+                                NatGeo
                             </th>
                             <th
                                 data-tour="score-comment"
@@ -602,7 +616,6 @@ defineExpose({ pendingCount: autosave.pendingCount });
                             >
                                 <ScoreCell
                                     :model-value="row.scores[s]"
-                                    :max="config.max[s]"
                                     :locked="locked"
                                     :saving="
                                         autosave.cells[
@@ -637,12 +650,6 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                         results.get(row.enrollment_id)!.level[s]
                                     "
                                     size="sm"
-                                    :percent="
-                                        showPercent
-                                            ? results.get(row.enrollment_id)!
-                                                  .percent[s]
-                                            : undefined
-                                    "
                                 />
                             </td>
                             <td
@@ -657,27 +664,51 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                 <span
                                     v-if="
                                         results.get(row.enrollment_id)!
-                                            .overall_percent !== null
+                                            .total !== null
                                     "
                                     class="mt-0.5 block text-[11px] font-semibold tabular-nums"
                                 >
                                     {{
-                                        formatPercent(
+                                        formatScore(
                                             results.get(row.enrollment_id)!
-                                                .overall_percent,
+                                                .total,
                                         )
                                     }}
                                 </span>
                             </td>
-                            <td
-                                class="border-b bg-input-computed/60 px-2 py-1 text-center"
-                            >
-                                <StatusBadge
-                                    :status="
-                                        results.get(row.enrollment_id)!.status
+                            <td v-if="natgeoLevels" class="border-b px-1 py-1">
+                                <NativeSelect
+                                    :model-value="row.natgeo ?? ''"
+                                    :disabled="locked"
+                                    :aria-label="`Level National Geographic, ${row.name}`"
+                                    :invalid="
+                                        !!autosave.cells[
+                                            `${row.enrollment_id}:natgeo`
+                                        ]
                                     "
-                                    size="sm"
-                                />
+                                    :title="
+                                        autosave.cells[
+                                            `${row.enrollment_id}:natgeo`
+                                        ]?.message
+                                    "
+                                    @update:model-value="
+                                        (v) =>
+                                            setScore(
+                                                row,
+                                                'natgeo',
+                                                (v || null) as Level | null,
+                                            )
+                                    "
+                                >
+                                    <option value="">–</option>
+                                    <option
+                                        v-for="l in natgeoLevels"
+                                        :key="l"
+                                        :value="l"
+                                    >
+                                        {{ l }}
+                                    </option>
+                                </NativeSelect>
                             </td>
                             <td class="border-b px-1 py-1 text-center">
                                 <button
@@ -720,8 +751,8 @@ defineExpose({ pendingCount: autosave.pendingCount });
     <StudentPanel
         :row="panelRow"
         :result="panelRow ? results.get(panelRow.enrollment_id)! : null"
-        :config="config"
-        :levels="levels"
+        :comments="comments"
+        :natgeo-levels="natgeoLevels"
         :classroom="classroom"
         :locked="locked"
         :cells="autosave.cells"
@@ -756,11 +787,16 @@ defineExpose({ pendingCount: autosave.pendingCount });
             Nilai <strong>{{ autosave.conflict.value.row.name }}</strong> diubah
             di perangkat lain
             <template v-if="autosave.conflict.value.field !== 'comment'">
-                ({{ SKILL_LABEL[autosave.conflict.value.field as Skill] }}
+                ({{
+                    autosave.conflict.value.field === 'natgeo'
+                        ? 'NatGeo'
+                        : SKILL_LABEL[autosave.conflict.value.field as Skill]
+                }}
                 {{
-                    autosave.conflict.value.current.scores[
-                        autosave.conflict.value.field as Skill
-                    ] ?? '–'
+                    fieldValue(
+                        autosave.conflict.value.current,
+                        autosave.conflict.value.field,
+                    ) ?? '–'
                 }}
                 → nilai Anda {{ autosave.conflict.value.mine ?? '–' }}).
             </template>

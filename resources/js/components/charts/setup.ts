@@ -11,7 +11,7 @@ import {
     Tooltip,
 } from 'chart.js';
 import type { Plugin } from 'chart.js';
-import type { Level, Skill } from '@/lib/cefr';
+import type { Band, Level, Skill } from '@/lib/cefr';
 
 /**
  * Chart.js setup shared by every chart (PRD-06 §3.3, dataviz rules):
@@ -77,12 +77,12 @@ export const GRADE_COLORS: Record<number, string> = {
     6: '#059669',
 };
 
-export const STATUS_COLORS = {
-    below: { bg: '#B42318', label: 'Below Expected' },
-    meeting: { bg: '#1E7B43', label: 'Meeting Expected' },
-    above: { bg: '#1F5E99', label: 'Above Expected' },
-    incomplete: { bg: '#9A5B00', label: 'Belum lengkap' },
-} as const;
+/** Internal assessment bands (revisi 23-11-2026): red / yellow / green, labels drawn in-segment. */
+export const BAND_COLORS: Record<Band, { bg: string; fg: string }> = {
+    Beginner: { bg: '#D64545', fg: '#FFFFFF' },
+    Intermediate: { bg: '#F2C230', fg: '#3B2A12' },
+    Advanced: { bg: '#2E8B57', fg: '#FFFFFF' },
+};
 
 export const nf = (v: number, digits = 1) =>
     v.toLocaleString('id-ID', { maximumFractionDigits: digits });

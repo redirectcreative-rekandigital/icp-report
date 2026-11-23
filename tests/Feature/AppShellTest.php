@@ -8,6 +8,7 @@ use App\Models\Score;
 use App\Models\Student;
 use App\Services\ActivityLogger;
 use App\Services\Housekeeping;
+use App\Support\Settings;
 use Database\Seeders\CefrReferenceSeeder;
 use Database\Seeders\DemoSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -54,14 +55,16 @@ it('returns the uniform JSON error format with a reference code', function () {
         ->assertJsonPath('message', 'Data tidak ditemukan.');
 });
 
-it('seeds level meta and the 20 descriptors from the Excel workbook', function () {
+it('seeds the CEFR map levels and the 12 band descriptors from the Excel workbook', function () {
     $this->seed(CefrReferenceSeeder::class);
 
     expect(LevelMeta::count())->toBe(5)
-        ->and(Descriptor::count())->toBe(20)
+        ->and(Descriptor::count())->toBe(12)
         ->and(LevelMeta::find('A2')->cambridge)->toBe('A2 Flyers / A2 Key')
-        ->and(Descriptor::where(['level' => 'B1', 'skill' => 'speaking'])->value('can_do'))
-        ->toBe('Can describe experiences, give opinions with reasons and keep a conversation going on familiar topics.');
+        // Interim: Advanced reuses the B1 texts until the school sends its own.
+        ->and(Descriptor::where(['level' => 'Advanced', 'skill' => 'speaking'])->value('can_do'))
+        ->toBe('Can describe experiences, give opinions with reasons and keep a conversation going on familiar topics.')
+        ->and(app(Settings::class)->get('band_comments'))->toHaveKeys(['Beginner', 'Intermediate', 'Advanced']);
 });
 
 it('prunes activity logs older than one year', function () {

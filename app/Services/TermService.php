@@ -46,18 +46,9 @@ class TermService
     private function createScoringConfigs(Term $term, ?Term $source): void
     {
         $sourceConfigs = $source?->scoringConfigs()->get()->keyBy('grade');
-        $defaults = (require database_path('seeders/data/cefr_content.php'))['scoring_defaults'];
-
         foreach (self::GRADES as $grade) {
-            $from = $sourceConfigs?->get($grade);
-
-            $values = $from
-                ? $from->only(ScoringConfig::COPY_FIELDS)
-                : [
-                    'thresholds' => $defaults[$grade]['thresholds'],
-                    'expected_min' => $defaults[$grade]['expected_min'],
-                    'expected_max' => $defaults[$grade]['expected_max'],
-                ];
+            // No earlier period: the column defaults apply (13 / 20).
+            $values = $sourceConfigs?->get($grade)?->only(ScoringConfig::COPY_FIELDS) ?? [];
 
             $term->scoringConfigs()->create(['grade' => $grade] + $values);
         }

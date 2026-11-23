@@ -2,7 +2,7 @@ import { useEventListener, useOnline } from '@vueuse/core';
 import type { Ref } from 'vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { requestSessionPin } from '@/composables/usePinConfirm';
-import type { Skill } from '@/lib/cefr';
+import type { Level, Skill } from '@/lib/cefr';
 import { ApiError, http } from '@/lib/http';
 
 /**
@@ -12,7 +12,7 @@ import { ApiError, http } from '@/lib/http';
  * - 401/419: ask for the PIN in place, then resend; 409: conflict dialog; 423: class finalised elsewhere
  */
 
-export type Field = Skill | 'comment';
+export type Field = Skill | 'natgeo' | 'comment';
 export type ScoreRow = {
     enrollment_id: number;
     roll_no: number;
@@ -21,14 +21,34 @@ export type ScoreRow = {
     name: string;
     is_active: boolean;
     scores: Record<Skill, number | null>;
+    natgeo: Level | null;
     comment: string | null;
     version: number;
 };
 type Current = {
     scores: Record<Skill, number | null>;
+    natgeo: Level | null;
     comment: string | null;
     version: number;
 };
+
+/** Reads one editable field of a row. */
+export function fieldValue(row: Current, field: Field): unknown {
+    return field === 'comment' || field === 'natgeo'
+        ? row[field]
+        : row.scores[field];
+}
+
+/** Writes one editable field of a row. */
+export function assignField(row: Current, field: Field, value: unknown): void {
+    if (field === 'comment') {
+        row.comment = value as string | null;
+    } else if (field === 'natgeo') {
+        row.natgeo = value as Level | null;
+    } else {
+        row.scores[field] = value as number | null;
+    }
+}
 export type Conflict = {
     row: ScoreRow;
     field: Field;
@@ -148,11 +168,7 @@ export function useScoreAutosave(options: {
                 queue.get(id)?.[field] === value ||
                 !(field in (queue.get(id) ?? {}))
             ) {
-                if (field === 'comment') {
-                    row.comment = res.comment;
-                } else {
-                    row.scores[field] = res.scores[field];
-                }
+                assignField(row, field, fieldValue(res, field));
             }
 
             finishField(id, field, value);
@@ -247,6 +263,7 @@ export function useScoreAutosave(options: {
 
         if (choice === 'theirs') {
             c.row.scores = { ...c.current.scores };
+            c.row.natgeo = c.current.natgeo;
             c.row.comment = c.current.comment;
             c.row.version = c.current.version;
             queue.delete(c.row.enrollment_id);
@@ -315,12 +332,7 @@ export function useScoreAutosave(options: {
                 Field,
                 unknown,
             ][]) {
-                if (field === 'comment') {
-                    row.comment = value as string | null;
-                } else {
-                    row.scores[field] = value as number | null;
-                }
-
+                assignField(row, field, value);
                 enqueue(row, field, value);
             }
         }

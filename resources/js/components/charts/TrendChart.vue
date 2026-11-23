@@ -5,7 +5,7 @@ import { Line } from 'vue-chartjs';
 import { GRADE_COLORS, nf } from '@/components/charts/setup';
 
 /**
- * "Perbandingan periode" — average overall % per grade over the last ≤ 6 final periods.
+ * "Perbandingan periode" — average total (20–100) per grade over the last ≤ 6 final periods.
  * Lines carry a direct label at their last point plus a legend (≤ 4 series).
  */
 const props = defineProps<{
@@ -38,9 +38,8 @@ const options: ChartOptions<'line'> = {
     scales: {
         x: { grid: { display: false } },
         y: {
-            min: 0,
+            min: 20,
             max: 100,
-            ticks: { callback: (v) => `${v}%` },
             grid: { color: '#EEF2F7' },
         },
     },
@@ -49,7 +48,7 @@ const options: ChartOptions<'line'> = {
         tooltip: {
             callbacks: {
                 label: (ctx) =>
-                    `${ctx.dataset.label}: ${ctx.raw === null ? '–' : `${nf(Number(ctx.raw))}%`}`,
+                    `${ctx.dataset.label}: ${ctx.raw === null ? '–' : nf(Number(ctx.raw))}`,
             },
         },
     },

@@ -25,8 +25,8 @@ it('shows KPIs for the active period', function () {
         ->where('kpis.students', 22)
         ->where('kpis.final', 0)
         ->where('kpis.classes', 8)
-        ->where('kpis.average', fn ($v) => $v > 0 && $v < 100)
-        ->where('kpis.meeting_or_above', fn ($v) => $v >= 0 && $v <= 100)
+        ->where('kpis.average', fn ($v) => $v >= 20 && $v <= 100) // total score, not %
+        ->where('kpis.intermediate_or_above', fn ($v) => $v >= 0 && $v <= 100)
         ->has('progress', 8)
         ->missing('charts'));
 });
@@ -37,8 +37,10 @@ it('loads charts and highlights as deferred props', function () {
         ->loadDeferredProps(fn (Assert $reload) => $reload
             ->has('charts.byClass', 8)
             ->where('charts.byClass.4.class', '5A')
-            ->where('charts.byClass.4.levels.B1', ['Laras Anindya'])
-            ->where('charts.status.incomplete', 2)
+            ->where('charts.byClass.4.levels.Advanced', ['Laras Anindya'])
+            ->where('charts.byClass.4.levels.Intermediate', ['Kevin Wijaya'])
+            ->where('charts.byClass.4.skills.reading', fn ($v) => $v >= 5 && $v <= 25)
+            ->where('charts.natgeo', ['Pre-A1' => 1, 'A1' => 1, 'A2' => 2, 'B1' => 1, 'B2' => 0, 'empty' => 0])
             ->has('charts.byGrade', 4)
             ->has('charts.insights', fn (Assert $i) => $i->etc())));
 });
@@ -97,7 +99,7 @@ it('compares two periods by level share, same students or all', function () {
     $this->get("/?tab=perbandingan&a={$prev->id}&b={$this->term->id}&cohort=same")->assertInertia(fn (Assert $p) => $p
         ->where('comparison.a.n', 2)
         ->where('comparison.b.n', 2)
-        ->where('comparison.moves', ['up' => 2, 'same' => 0, 'down' => 0])); // Kevin A1→A2, Laras A2→B1
+        ->where('comparison.moves', ['up' => 2, 'same' => 0, 'down' => 0])); // Kevin Beginner→Intermediate, Laras Intermediate→Advanced
 
     $this->get("/?tab=perbandingan&a={$prev->id}&b={$this->term->id}&cohort=all")->assertInertia(fn (Assert $p) => $p
         ->where('comparison.b.n', 5)
@@ -114,7 +116,7 @@ it('shows a student history with level changes, narrative, PDF links and the lat
     $old = Classroom::create(['term_id' => $prev->id, 'grade' => 4, 'name' => '4A']);
     $kevin = Student::where('nis', '5001')->first();
     $e = Enrollment::create(['classroom_id' => $old->id, 'student_id' => $kevin->id, 'term_id' => $prev->id]);
-    Score::create(['enrollment_id' => $e->id, 'listening' => 12, 'reading' => 13, 'writing' => 10, 'speaking' => 12]); // grade 4 → 58.75% → A1
+    Score::create(['enrollment_id' => $e->id, 'listening' => 12, 'reading' => 13, 'writing' => 10, 'speaking' => 12]); // total 47 → Beginner
     app(FinalizationService::class)->finalize($old);
 
     $c5a = Classroom::where(['term_id' => $this->term->id, 'name' => '5A'])->first();
@@ -124,14 +126,15 @@ it('shows a student history with level changes, narrative, PDF links and the lat
 
     $this->get("/siswa/{$kevin->id}")->assertInertia(fn (Assert $p) => $p
         ->has('points', 2)
-        ->where('points.0.overall_level', 'A1')
-        ->where('points.1.overall_level', 'A2')
+        ->where('points.0.overall_level', 'Beginner')
+        ->where('points.0.total', 47)
+        ->where('points.1.overall_level', 'Intermediate')
         ->where('points.1.change', 'up')
         ->where('points.1.pdf_url', fn ($u) => str_contains($u, '/pdf'))
-        ->where('latestLevel', 'A2')
-        ->where('narrative', fn ($n) => str_starts_with($n, 'Kevin naik dari A1 (Kelas 4, Semester 2) ke A2 (Kelas 5, Semester 1). Skill dengan kenaikan terbesar: Reading')));
+        ->where('latestLevel', 'Intermediate')
+        ->where('narrative', fn ($n) => str_starts_with($n, 'Kevin naik dari Beginner (Kelas 4, Semester 2) ke Intermediate (Kelas 5, Semester 1). Skill dengan kenaikan terbesar: Reading (+4 poin).')));
 
-    $this->get('/siswa?q=kevin')->assertInertia(fn (Assert $p) => $p->where('students.data.0.last_level', 'A2'));
+    $this->get('/siswa?q=kevin')->assertInertia(fn (Assert $p) => $p->where('students.data.0.last_level', 'Intermediate'));
 });
 
 it('shows draft points in the history as "draft"', function () {

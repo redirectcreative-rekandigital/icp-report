@@ -28,6 +28,14 @@ class Classroom extends Model
         return $this->hasMany(Enrollment::class)->orderBy('roll_no');
     }
 
+    /** Only grade 6 gets the National Geographic placement level (revisi 23-11-2026 item 4a). */
+    public const NATGEO_GRADE = 6;
+
+    public function usesNatGeo(): bool
+    {
+        return $this->grade === self::NATGEO_GRADE;
+    }
+
     public function isFinal(): bool
     {
         return $this->status === 'final';

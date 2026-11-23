@@ -114,11 +114,9 @@ function mountPage(component: object, props: Record<string, unknown>) {
 }
 
 const levels = {
-    'Pre-A1': [],
-    A1: ['Aditya Pratama'],
-    A2: ['Kevin Wijaya'],
-    B1: [],
-    B2: [],
+    Beginner: ['Aditya Pratama'],
+    Intermediate: ['Kevin Wijaya'],
+    Advanced: [],
 };
 
 describe('Dashboard page', () => {
@@ -147,7 +145,7 @@ describe('Dashboard page', () => {
                 average: 68.4,
                 previous_average: 65,
                 delta: 3.4,
-                meeting_or_above: 50,
+                intermediate_or_above: 50,
             },
             progress: [
                 {
@@ -178,27 +176,34 @@ describe('Dashboard page', () => {
                         correcting: false,
                         levels,
                         skills: {
-                            listening: 80,
-                            reading: 75,
-                            writing: 70,
-                            speaking: 75,
+                            listening: 16,
+                            reading: 15,
+                            writing: 14,
+                            speaking: 15,
                         },
-                        average: 75,
+                        average: 60,
                     },
                 ],
                 byGrade: [
                     {
                         grade: 3,
-                        levels: { 'Pre-A1': 0, A1: 1, A2: 1, B1: 0, B2: 0 },
+                        levels: { Beginner: 1, Intermediate: 1, Advanced: 0 },
                         skills: {
-                            listening: 80,
-                            reading: 75,
-                            writing: 70,
-                            speaking: 75,
+                            listening: 16,
+                            reading: 15,
+                            writing: 14,
+                            speaking: 15,
                         },
                     },
                 ],
-                status: { below: 1, meeting: 1, above: 0, incomplete: 1 },
+                natgeo: {
+                    'Pre-A1': 0,
+                    A1: 1,
+                    A2: 2,
+                    B1: 0,
+                    B2: 0,
+                    empty: 1,
+                },
                 trend: {
                     labels: ['2025/26 S2', '2026/27 S1'],
                     series: [{ grade: 3, values: [60, 68.4] }],
@@ -226,7 +231,9 @@ describe('Dashboard page', () => {
         // Real chart components rendered with level / skill series.
         expect(
             w
-                .find('[data-chart="bar"][data-series="Pre-A1,A1,A2,B1,B2"]')
+                .find(
+                    '[data-chart="bar"][data-series="Beginner,Intermediate,Advanced"]',
+                )
                 .exists(),
         ).toBe(true);
         expect(
@@ -237,7 +244,9 @@ describe('Dashboard page', () => {
         expect(
             w.find('[data-chart="line"][data-series="Kelas 3"]').exists(),
         ).toBe(true);
-        expect(text).toContain('Below Expected');
+        expect(text).toContain('Level National Geographic (Kelas 6)');
+        expect(text).toContain('Belum diisi');
+        expect(text).not.toContain('Below Expected');
     });
 
     it('shows onboarding when the period has no classes', () => {
@@ -263,7 +272,7 @@ describe('Dashboard page', () => {
         const summary = {
             n: 2,
             average: 60,
-            levels: { 'Pre-A1': 0, A1: 50, A2: 50, B1: 0, B2: 0 },
+            levels: { Beginner: 50, Intermediate: 50, Advanced: 0 },
         };
         const w = mountPage(Dashboard, {
             hasActiveTerm: true,
@@ -317,21 +326,21 @@ describe('Student profile page', () => {
                     term: '2025/26 S2',
                     term_full: '',
                     classroom: { id: 1, name: '4A', grade: 4 },
-                    pct: {
-                        listening: 60,
-                        reading: 65,
-                        writing: 50,
-                        speaking: 60,
+                    scores: {
+                        listening: 12,
+                        reading: 13,
+                        writing: 10,
+                        speaking: 12,
                     },
                     levels: {
-                        listening: 'A1',
-                        reading: 'A1',
-                        writing: 'A1',
-                        speaking: 'A1',
+                        listening: 'Beginner',
+                        reading: 'Intermediate',
+                        writing: 'Beginner',
+                        speaking: 'Beginner',
                     },
-                    overall_pct: 58.8,
-                    overall_level: 'A1',
-                    status: 'meeting',
+                    total: 47,
+                    overall_level: 'Beginner',
+                    natgeo: null,
                     source: 'final',
                     pdf_url: '/x.pdf',
                     change: null,
@@ -342,29 +351,29 @@ describe('Student profile page', () => {
                     term: '2026/27 S1',
                     term_full: '',
                     classroom: { id: 3, name: '5A', grade: 5 },
-                    pct: {
-                        listening: 75,
-                        reading: 85,
-                        writing: 55,
-                        speaking: 65,
+                    scores: {
+                        listening: 15,
+                        reading: 21,
+                        writing: 11,
+                        speaking: 13,
                     },
                     levels: {
-                        listening: 'A2',
-                        reading: 'B1',
-                        writing: 'A2',
-                        speaking: 'A2',
+                        listening: 'Intermediate',
+                        reading: 'Advanced',
+                        writing: 'Beginner',
+                        speaking: 'Intermediate',
                     },
-                    overall_pct: 70,
-                    overall_level: 'A2',
-                    status: 'meeting',
+                    total: 60,
+                    overall_level: 'Intermediate',
+                    natgeo: null,
                     source: 'draft',
                     pdf_url: null,
                     change: 'up',
-                    previous_level: 'A1',
+                    previous_level: 'Beginner',
                 },
             ],
-            latestLevel: 'A1',
-            narrative: 'Kevin naik dari A1 ke A2.',
+            latestLevel: 'Beginner',
+            narrative: 'Kevin naik dari Beginner ke Intermediate.',
             classes: [],
         });
         await vi.dynamicImportSettled();
@@ -372,9 +381,10 @@ describe('Student profile page', () => {
         const text = w.text();
 
         expect(text).toContain('Perkembangan level');
-        expect(text).toContain('Kevin naik dari A1 ke A2.');
+        expect(text).toContain('Kevin naik dari Beginner ke Intermediate.');
         expect(text).toContain('Riwayat level per periode');
-        expect(text).toContain('A1 → A2');
+        expect(text).toContain('Beginner → Intermediate');
+        expect(text).not.toContain('%');
         expect(text).toContain('Draft');
     });
 });

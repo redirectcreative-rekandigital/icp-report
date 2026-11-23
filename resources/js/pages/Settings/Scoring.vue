@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { AlertTriangle, Eye, Lock } from 'lucide-vue-next';
-import { CalendarRange } from 'lucide-vue-next';
+import { AlertTriangle, CalendarRange, Eye } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import EmptyState from '@/components/app/EmptyState.vue';
 import LevelBadge from '@/components/app/LevelBadge.vue';
@@ -20,8 +19,8 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { withPin } from '@/composables/usePinConfirm';
 import SettingsLayout from '@/layouts/SettingsLayout.vue';
-import { LEVELS, SKILL_LABEL, SKILLS } from '@/lib/cefr';
-import type { Level, ScoringConfig } from '@/lib/cefr';
+import { formatScore, SCORE_MAX, SCORE_MIN } from '@/lib/cefr';
+import type { Band, ScoringConfig } from '@/lib/cefr';
 import { ApiError, http } from '@/lib/http';
 import { cn } from '@/lib/utils';
 
@@ -41,77 +40,75 @@ watch(termId, (id) =>
 
 const grade = ref(props.configs[0]?.grade ?? 3);
 const current = computed(() =>
-    props.configs.find((c) => c.grade === grade.value)!,
+    props.configs.find((c) => c.grade === grade.value),
 );
 
-type FormShape = {
-    max: Record<string, number | string>;
-    weight: Record<string, number | string>;
-    thresholds: Record<Level, number | string>; // '' = level not measured
-    expected_min: Level;
-    expected_max: Level;
-};
-
-const toForm = (c: ConfigRow): FormShape => ({
-    max: { ...c.max },
-    weight: { ...c.weight },
-    thresholds: Object.fromEntries(
-        LEVELS.map((l) => [l, c.thresholds[l] ?? '']),
-    ) as Record<Level, number | string>,
-    expected_min: c.expected_min,
-    expected_max: c.expected_max,
+type FormShape = { intermediate: number | string; advanced: number | string };
+const toForm = (c?: ConfigRow): FormShape => ({
+    intermediate: c?.intermediate ?? 13,
+    advanced: c?.advanced ?? 20,
 });
 
-const form = useForm<FormShape>(
-    current.value ? toForm(current.value) : ({} as FormShape),
-);
+const form = useForm<FormShape>(toForm(current.value));
 
 watch(
     () => [grade.value, props.configs],
     () => {
-        if (current.value) {
-            form.defaults(toForm(current.value));
-            form.reset();
-            form.clearErrors();
-            impact.value = null;
-        }
+        form.defaults(toForm(current.value));
+        form.reset();
+        form.clearErrors();
+        impact.value = null;
     },
 );
 
-const weightTotal = computed(() =>
-    SKILLS.reduce((s, k) => s + (Number(form.weight?.[k]) || 0), 0),
-);
+/** Ranges shown as a live preview (per skill, and ×4 for the total). */
+const ranges = computed(() => {
+    const i = Number(form.intermediate) || 0;
+    const a = Number(form.advanced) || 0;
+    const below = (v: number) => formatScore(v - 0.5);
 
-function payload() {
-    const t = Object.fromEntries(
-        LEVELS.map((l) => [
-            l,
-            form.thresholds[l] === '' ? null : form.thresholds[l],
-        ]),
-    );
-
-    return { ...form.data(), thresholds: { ...t, 'Pre-A1': 0 } };
-}
+    return [
+        {
+            band: 'Beginner' as Band,
+            skill: `${SCORE_MIN} – ${below(i)}`,
+            total: `${SCORE_MIN * 4} – ${below(i * 4)}`,
+        },
+        {
+            band: 'Intermediate' as Band,
+            skill: `${formatScore(i)} – ${below(a)}`,
+            total: `${formatScore(i * 4)} – ${below(a * 4)}`,
+        },
+        {
+            band: 'Advanced' as Band,
+            skill: `${formatScore(a)} – ${SCORE_MAX}`,
+            total: `${formatScore(a * 4)} – ${SCORE_MAX * 4}`,
+        },
+    ];
+});
 
 const impact = ref<{
     count: number;
     students: {
         name: string;
         class: string;
-        from: Level | null;
-        to: Level | null;
+        from: Band | null;
+        to: Band | null;
     }[];
 } | null>(null);
 const impactLoading = ref(false);
 
 async function preview(): Promise<void> {
+    if (!current.value) {
+        return;
+    }
+
     impactLoading.value = true;
     form.clearErrors();
 
     try {
         impact.value = await http.post(
             `/pengaturan/penilaian/${current.value.id}/dampak`,
-            payload(),
+            form.data(),
         );
     } catch (e) {
         if (e instanceof ApiError && e.status === 422) {
@@ -132,16 +129,12 @@ async function preview(): Promise<void> {
 function save(): void {
     void withPin(
         () =>
-            form
-                .transform(payload)
-                .put(`/pengaturan/penilaian/${current.value.id}`, {
-                    preserveScroll: true,
-                }),
+            form.put(`/pengaturan/penilaian/${current.value!.id}`, {
+                preserveScroll: true,
+            }),
         'Konfirmasi ubah pengaturan penilaian',
     );
 }
-
-const err = (k: string) => (form.errors as Record<string, string>)[k];
 </script>
 
 <template>
@@ -200,157 +193,97 @@ const err = (k: string) => (form.errors as Record<string, string>)[k];
             </div>
 
             <form class="grid gap-6 xl:grid-cols-2" @submit.prevent="save">
-                <Card data-tour="sc-max">
+                <Card data-tour="sc-thresholds">
                     <CardHeader>
-                        <CardTitle>Nilai maksimum & bobot</CardTitle>
+                        <CardTitle>Batas level penilaian guru</CardTitle>
                         <CardDescription
-                            >Persentase = skor ÷ maksimum × 100. Overall =
-                            rata-rata berbobot.</CardDescription
+                            >Nilai tiap skill {{ SCORE_MIN }}–{{ SCORE_MAX }}.
+                            Level total memakai batas yang sama ×4 (total
+                            {{ SCORE_MIN * 4 }}–{{
+                                SCORE_MAX * 4
+                            }}).</CardDescription
                         >
                     </CardHeader>
-                    <CardContent>
+                    <CardContent class="grid gap-3">
                         <div
-                            class="grid grid-cols-[1fr_6rem_6rem] items-center gap-x-3 gap-y-2 text-sm"
+                            class="grid grid-cols-[8rem_7rem_1fr] items-center gap-3"
                         >
-                            <span />
-                            <span class="font-semibold text-muted-foreground"
-                                >Maksimum</span
+                            <LevelBadge level="Intermediate" />
+                            <Input
+                                v-model="form.intermediate"
+                                type="number"
+                                :min="SCORE_MIN"
+                                :max="SCORE_MAX"
+                                step="0.5"
+                                class="tabular-nums"
+                                aria-label="Batas minimum Intermediate"
+                                :aria-invalid="!!form.errors.intermediate"
+                            />
+                            <span class="text-sm text-muted-foreground"
+                                >nilai minimum</span
                             >
-                            <span class="font-semibold text-muted-foreground"
-                                >Bobot (%)</span
+                            <InputError
+                                :message="form.errors.intermediate"
+                                class="col-span-3"
+                            />
+                            <LevelBadge level="Advanced" />
+                            <Input
+                                v-model="form.advanced"
+                                type="number"
+                                :min="SCORE_MIN"
+                                :max="SCORE_MAX"
+                                step="0.5"
+                                class="tabular-nums"
+                                aria-label="Batas minimum Advanced"
+                                :aria-invalid="!!form.errors.advanced"
+                            />
+                            <span class="text-sm text-muted-foreground"
+                                >nilai minimum</span
                             >
-                            <template v-for="s in SKILLS" :key="s">
-                                <span class="font-medium">{{
-                                    SKILL_LABEL[s]
-                                }}</span>
-                                <Input
-                                    v-model="form.max[s]"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    step="0.5"
-                                    class="tabular-nums"
-                                    :aria-invalid="!!err(`max.${s}`)"
-                                    :aria-label="`Maksimum ${SKILL_LABEL[s]}`"
-                                />
-                                <Input
-                                    v-model="form.weight[s]"
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    step="1"
-                                    class="tabular-nums"
-                                    :aria-label="`Bobot ${SKILL_LABEL[s]}`"
-                                />
-                                <InputError
-                                    v-if="err(`max.${s}`)"
-                                    :message="err(`max.${s}`)"
-                                    class="col-span-3"
-                                />
-                            </template>
-                            <span class="font-semibold">Total bobot</span>
-                            <span />
-                            <span
-                                :class="
-                                    cn(
-                                        'font-bold tabular-nums',
-                                        weightTotal !== 100 &&
-                                            'text-status-incomplete-fg',
-                                    )
-                                "
-                                >{{ weightTotal }}</span
-                            >
+                            <InputError
+                                :message="form.errors.advanced"
+                                class="col-span-3"
+                            />
                         </div>
-                        <p
-                            v-if="weightTotal !== 100 && weightTotal > 0"
-                            class="mt-2 text-xs text-status-incomplete-fg"
-                        >
-                            Total bukan 100 — tetap diizinkan karena bobot
-                            dinormalisasi.
-                        </p>
-                        <InputError :message="err('weight')" class="mt-2" />
                     </CardContent>
                 </Card>
 
-                <Card data-tour="sc-thresholds">
+                <Card data-tour="sc-max">
                     <CardHeader>
-                        <CardTitle>Ambang batas level CEFR (%)</CardTitle>
+                        <CardTitle>Rentang nilai</CardTitle>
                         <CardDescription
-                            >Level = level tertinggi yang ambangnya ≤
-                            persentase. Kosongkan bila level tidak
-                            diukur.</CardDescription
+                            >Pratinjau dari batas di samping.</CardDescription
                         >
                     </CardHeader>
-                    <CardContent class="grid gap-2">
-                        <div
-                            v-for="l in LEVELS"
-                            :key="l"
-                            class="grid grid-cols-[5rem_7rem_1fr] items-center gap-3"
-                        >
-                            <LevelBadge :level="l" />
-                            <div class="relative">
-                                <Input
-                                    v-if="l !== 'Pre-A1'"
-                                    v-model="form.thresholds[l]"
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    step="0.5"
-                                    placeholder="tidak diukur"
-                                    class="tabular-nums"
-                                    :aria-label="`Ambang ${l}`"
-                                    :aria-invalid="!!err(`thresholds.${l}`)"
-                                />
-                                <div
-                                    v-else
-                                    class="flex h-9 items-center gap-1.5 rounded-md bg-input-computed px-3 text-sm text-muted-foreground"
+                    <CardContent>
+                        <table class="w-full text-sm">
+                            <thead class="text-left text-muted-foreground">
+                                <tr>
+                                    <th class="py-1 font-semibold">Level</th>
+                                    <th class="py-1 font-semibold">
+                                        Per skill
+                                    </th>
+                                    <th class="py-1 font-semibold">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="r in ranges"
+                                    :key="r.band"
+                                    class="border-t"
                                 >
-                                    <Lock class="size-3.5" /> 0
-                                </div>
-                            </div>
-                            <InputError :message="err(`thresholds.${l}`)" />
-                        </div>
-
-                        <div class="mt-3 grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="exp-min"
-                                    >Level harapan terendah</Label
-                                >
-                                <NativeSelect
-                                    id="exp-min"
-                                    v-model="form.expected_min"
-                                    :invalid="!!err('expected_min')"
-                                >
-                                    <option
-                                        v-for="l in LEVELS"
-                                        :key="l"
-                                        :value="l"
-                                    >
-                                        {{ l }}
-                                    </option>
-                                </NativeSelect>
-                                <InputError :message="err('expected_min')" />
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="exp-max"
-                                    >Level harapan tertinggi</Label
-                                >
-                                <NativeSelect
-                                    id="exp-max"
-                                    v-model="form.expected_max"
-                                    :invalid="!!err('expected_max')"
-                                >
-                                    <option
-                                        v-for="l in LEVELS"
-                                        :key="l"
-                                        :value="l"
-                                    >
-                                        {{ l }}
-                                    </option>
-                                </NativeSelect>
-                                <InputError :message="err('expected_max')" />
-                            </div>
-                        </div>
+                                    <td class="py-1.5">
+                                        <LevelBadge :level="r.band" size="sm" />
+                                    </td>
+                                    <td class="py-1.5 tabular-nums">
+                                        {{ r.skill }}
+                                    </td>
+                                    <td class="py-1.5 tabular-nums">
+                                        {{ r.total }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </CardContent>
                 </Card>
 

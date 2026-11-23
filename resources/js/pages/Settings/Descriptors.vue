@@ -18,44 +18,44 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import SettingsLayout from '@/layouts/SettingsLayout.vue';
-import { LEVELS, SKILL_LABEL, SKILLS } from '@/lib/cefr';
-import type { Level, Skill } from '@/lib/cefr';
+import { SKILL_LABEL, SKILLS } from '@/lib/cefr';
+import type { Band, Level, Skill } from '@/lib/cefr';
 import { clone } from '@/lib/clone';
 import { cn } from '@/lib/utils';
 
-/** Report texts in English (PRD-01 §4.1 descriptors & level_meta). */
+/**
+ * Report texts in English: per band the can-do / next step per skill and the automatic
+ * comment; plus the CEFR level names shown on the grade 6 National Geographic map.
+ */
 type Meta = {
     level: Level;
     short_name: string;
     name: string;
     cambridge: string;
-    overall_comment: string;
 };
 
 const props = defineProps<{
-    levels: Meta[];
+    bands: Band[];
+    comments: Record<Band, string>;
     descriptors: Record<
-        Level,
+        Band,
         Record<Skill, { can_do: string; next_step: string }>
     >;
+    levels: Meta[];
 }>();
 
 const form = useForm({
+    comments: clone(props.comments),
+    descriptors: clone(props.descriptors),
     levels: Object.fromEntries(
         props.levels.map((m) => [
             m.level,
-            {
-                short_name: m.short_name,
-                name: m.name,
-                cambridge: m.cambridge,
-                overall_comment: m.overall_comment,
-            },
+            { short_name: m.short_name, name: m.name, cambridge: m.cambridge },
         ]),
     ) as Record<Level, Omit<Meta, 'level'>>,
-    descriptors: clone(props.descriptors),
 });
 
-const level = ref<Level>('Pre-A1');
+const band = ref<Band>(props.bands[0]);
 const resetOpen = ref(false);
 const err = (k: string) => (form.errors as Record<string, string>)[k];
 
@@ -82,7 +82,7 @@ function reset(): void {
     <Head title="Deskriptor" />
     <SettingsLayout title="Deskriptor" tour="set-deskriptor">
         <p class="mb-4 max-w-3xl text-sm text-muted-foreground">
-            Teks rapor berbahasa Inggris dari sheet Descriptors Excel. Perubahan
+            Teks rapor berbahasa Inggris per level penilaian guru. Perubahan
             berlaku untuk kelas Draft; rapor kelas final memakai teks saat
             finalisasi.
         </p>
@@ -93,81 +93,42 @@ function reset(): void {
             role="tablist"
         >
             <button
-                v-for="l in LEVELS"
-                :key="l"
+                v-for="b in bands"
+                :key="b"
                 type="button"
                 role="tab"
-                :aria-selected="level === l"
+                :aria-selected="band === b"
                 :class="
                     cn(
                         'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium',
-                        level === l
+                        band === b
                             ? 'bg-card shadow-sm'
                             : 'text-muted-foreground',
                     )
                 "
-                @click="level = l"
+                @click="band = b"
             >
-                <LevelBadge :level="l" size="sm" />
-                <span class="hidden sm:inline">{{
-                    form.levels[l].short_name
-                }}</span>
+                <LevelBadge :level="b" size="sm" />
             </button>
         </div>
 
         <form class="grid gap-6" @submit.prevent="save">
             <Card data-tour="ds-meta">
                 <CardHeader>
-                    <CardTitle>Level {{ level }}</CardTitle>
+                    <CardTitle>Komentar otomatis — {{ band }}</CardTitle>
                     <CardDescription
-                        >Nama level, setara Cambridge, dan komentar otomatis
-                        (mengikuti nama siswa).</CardDescription
+                        >Dipakai bila guru tidak menulis komentar sendiri,
+                        mengikuti level total siswa.</CardDescription
                     >
                 </CardHeader>
-                <CardContent class="grid gap-4">
-                    <div class="grid gap-4 sm:grid-cols-3">
-                        <div class="grid gap-1.5">
-                            <Label>Nama singkat</Label>
-                            <Input
-                                v-model="form.levels[level].short_name"
-                                maxlength="40"
-                            />
-                            <InputError
-                                :message="err(`levels.${level}.short_name`)"
-                            />
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label>Nama level</Label>
-                            <Input
-                                v-model="form.levels[level].name"
-                                maxlength="80"
-                            />
-                            <InputError
-                                :message="err(`levels.${level}.name`)"
-                            />
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label>Setara Cambridge</Label>
-                            <Input
-                                v-model="form.levels[level].cambridge"
-                                maxlength="80"
-                            />
-                            <InputError
-                                :message="err(`levels.${level}.cambridge`)"
-                            />
-                        </div>
-                    </div>
-                    <div class="grid gap-1.5">
-                        <Label>Komentar otomatis — "{Nama siswa} …"</Label>
-                        <Textarea
-                            v-model="form.levels[level].overall_comment"
-                            rows="3"
-                            maxlength="400"
-                        />
-                        <InputError
-                            :message="err(`levels.${level}.overall_comment`)"
-                        />
-                    </div>
+                <CardContent class="grid gap-1.5">
+                    <Label>"{Nama siswa} …"</Label>
+                    <Textarea
+                        v-model="form.comments[band]"
+                        rows="3"
+                        maxlength="400"
+                    />
+                    <InputError :message="err(`comments.${band}`)" />
                 </CardContent>
             </Card>
 
@@ -175,7 +136,11 @@ function reset(): void {
                 <CardHeader>
                     <CardTitle
                         >What the student can do & Next steps —
-                        {{ level }}</CardTitle
+                        {{ band }}</CardTitle
+                    >
+                    <CardDescription
+                        >Dipilih per skill sesuai level skill
+                        tersebut.</CardDescription
                     >
                 </CardHeader>
                 <CardContent class="grid gap-5">
@@ -190,13 +155,13 @@ function reset(): void {
                                 >Can do</Label
                             >
                             <Textarea
-                                v-model="form.descriptors[level][s].can_do"
+                                v-model="form.descriptors[band][s].can_do"
                                 rows="3"
                                 maxlength="300"
                             />
                             <InputError
                                 :message="
-                                    err(`descriptors.${level}.${s}.can_do`)
+                                    err(`descriptors.${band}.${s}.can_do`)
                                 "
                             />
                         </div>
@@ -205,14 +170,66 @@ function reset(): void {
                                 >Next step</Label
                             >
                             <Textarea
-                                v-model="form.descriptors[level][s].next_step"
+                                v-model="form.descriptors[band][s].next_step"
                                 rows="3"
                                 maxlength="300"
                             />
                             <InputError
                                 :message="
-                                    err(`descriptors.${level}.${s}.next_step`)
+                                    err(`descriptors.${band}.${s}.next_step`)
                                 "
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Peta level CEFR (Kelas 6)</CardTitle>
+                    <CardDescription
+                        >Nama level di peta "Online placement test aligned with
+                        the CEFR level map" pada rapor Kelas 6.</CardDescription
+                    >
+                </CardHeader>
+                <CardContent class="grid gap-3">
+                    <div
+                        v-for="m in levels"
+                        :key="m.level"
+                        class="grid items-start gap-2 sm:grid-cols-[4.5rem_1fr_1fr_1fr]"
+                    >
+                        <LevelBadge :level="m.level" class="mt-1.5" />
+                        <div class="grid gap-1">
+                            <Input
+                                v-model="form.levels[m.level].short_name"
+                                maxlength="40"
+                                :aria-label="`Nama singkat ${m.level}`"
+                                placeholder="Nama singkat"
+                            />
+                            <InputError
+                                :message="err(`levels.${m.level}.short_name`)"
+                            />
+                        </div>
+                        <div class="grid gap-1">
+                            <Input
+                                v-model="form.levels[m.level].name"
+                                maxlength="80"
+                                :aria-label="`Nama level ${m.level}`"
+                                placeholder="Nama level"
+                            />
+                            <InputError
+                                :message="err(`levels.${m.level}.name`)"
+                            />
+                        </div>
+                        <div class="grid gap-1">
+                            <Input
+                                v-model="form.levels[m.level].cambridge"
+                                maxlength="80"
+                                :aria-label="`Setara Cambridge ${m.level}`"
+                                placeholder="Setara Cambridge"
+                            />
+                            <InputError
+                                :message="err(`levels.${m.level}.cambridge`)"
                             />
                         </div>
                     </div>
@@ -250,8 +267,8 @@ function reset(): void {
 
         <ConfirmDialog
             v-model:open="resetOpen"
-            title="Kembalikan semua teks ke bawaan Excel?"
-            description="Semua perubahan deskriptor dan komentar otomatis diganti dengan teks asli dari file Excel."
+            title="Kembalikan semua teks ke bawaan?"
+            description="Semua perubahan deskriptor dan komentar otomatis diganti dengan teks bawaan."
             confirm-label="Kembalikan ke bawaan"
             destructive
             @confirm="reset"
