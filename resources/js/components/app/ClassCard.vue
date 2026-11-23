@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 const props = defineProps<{
     id: number;
     name: string;
-    englishTeacher: string | null;
+    homeroomTeacher: string | null;
     status: 'draft' | 'final';
     complete: number;
     total: number;
@@ -36,7 +36,7 @@ const barColor = computed(() =>
             <div class="min-w-0">
                 <p class="text-2xl leading-none font-bold">{{ name }}</p>
                 <p class="mt-1 truncate text-sm text-muted-foreground">
-                    {{ englishTeacher || 'Guru belum diisi' }}
+                    {{ homeroomTeacher || 'Wali kelas belum diisi' }}
                 </p>
             </div>
             <StatusBadge :status="status" data-tour="kelas-status" />

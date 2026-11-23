@@ -46,7 +46,8 @@ import type { Paginated } from '@/types';
 
 type Row = {
     id: number;
-    nis: string;
+    nipd: string;
+    nisn: string;
     name: string;
     gender: 'L' | 'P' | null;
     is_active: boolean;
@@ -203,7 +204,8 @@ function bulk(action: 'move' | 'remove' | 'deactivate' | 'activate'): void {
 const formOpen = ref(false);
 const editing = ref<Row | null>(null);
 const form = useForm({
-    nis: '',
+    nipd: '',
+    nisn: '',
     name: '',
     gender: '' as '' | 'L' | 'P',
     classroom_id: '' as string,
@@ -213,7 +215,8 @@ const form = useForm({
 function openCreate(): void {
     editing.value = null;
     form.defaults({
-        nis: '',
+        nipd: '',
+        nisn: '',
         name: '',
         gender: '',
         classroom_id:
@@ -228,7 +231,8 @@ function openCreate(): void {
 function openEdit(s: Row): void {
     editing.value = s;
     form.defaults({
-        nis: s.nis,
+        nipd: s.nipd,
+        nisn: s.nisn,
         name: s.name,
         gender: s.gender ?? '',
         classroom_id:
@@ -305,7 +309,7 @@ const activeClasses = computed(() =>
                         ref="searchInput"
                         v-model="f.q"
                         type="search"
-                        placeholder="Cari nama atau NIS…  ( / )"
+                        placeholder="Cari nama, NIPD, atau NISN…  ( / )"
                         class="h-10 bg-card pl-9"
                     />
                 </div>
@@ -455,7 +459,8 @@ const activeClasses = computed(() =>
                                     aria-label="Pilih semua"
                                     @update:model-value="(v) => toggleAll(!!v)"
                             /></TableHead>
-                            <TableHead class="w-32">NIS</TableHead>
+                            <TableHead class="w-20">NIPD</TableHead>
+                            <TableHead class="w-28">NISN</TableHead>
                             <TableHead>Nama</TableHead>
                             <TableHead class="w-14">L/P</TableHead>
                             <TableHead class="w-24">Kelas</TableHead>
@@ -481,7 +486,10 @@ const activeClasses = computed(() =>
                                 />
                             </TableCell>
                             <TableCell class="font-mono text-sm">{{
-                                s.nis
+                                s.nipd
+                            }}</TableCell>
+                            <TableCell class="font-mono text-sm">{{
+                                s.nisn
                             }}</TableCell>
                             <TableCell class="max-w-72">
                                 <Link
@@ -554,7 +562,8 @@ const activeClasses = computed(() =>
                     <Link :href="`/siswa/${s.id}`" class="min-w-0 flex-1">
                         <p class="truncate font-semibold">{{ s.name }}</p>
                         <p class="text-sm text-muted-foreground">
-                            {{ s.nis }} • {{ s.classroom?.name ?? 'Tanpa kelas'
+                            {{ s.nipd }} • NISN {{ s.nisn }} •
+                            {{ s.classroom?.name ?? 'Tanpa kelas'
                             }}{{ s.is_active ? '' : ' • Nonaktif' }}
                         </p>
                     </Link>

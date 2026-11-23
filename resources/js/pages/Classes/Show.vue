@@ -226,8 +226,7 @@ usePageTour(() => tourId.value);
         </div>
         <p class="mb-4 text-sm text-muted-foreground">
             {{ classroom.term }} • Wali kelas:
-            {{ classroom.homeroom_teacher || '–' }} • Guru B. Inggris:
-            {{ classroom.english_teacher || '–' }}
+            {{ classroom.homeroom_teacher || '–' }}
         </p>
 
         <!-- Tabs reflected in the URL (segmented control on phones) -->

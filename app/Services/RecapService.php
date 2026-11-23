@@ -58,7 +58,7 @@ class RecapService
     private function finalRows(Classroom $c, string $source): array
     {
         return FinalResult::query()
-            ->with('student:id,name,nis')
+            ->with('student:id,name,nipd')
             ->where('classroom_id', $c->id)
             ->where('is_current', true)
             ->get()
@@ -81,7 +81,7 @@ class RecapService
     {
         $config = $this->scores->config($c);
 
-        return $c->enrollments()->with(['student:id,name,nis,is_active', 'score'])->get()
+        return $c->enrollments()->with(['student:id,name,nipd,is_active', 'score'])->get()
             ->filter(fn (Enrollment $e) => $e->student->is_active)
             ->map(function (Enrollment $e) use ($c, $config) {
                 $payload = $this->scores->scorePayload($e->score);

@@ -44,7 +44,7 @@ class ScoringSettingsController extends Controller
 
     public function update(Request $request, ScoringConfig $config, ActivityLogger $logger): RedirectResponse
     {
-        $config->update($this->validated($request));
+        $config->update(self::validatedThresholds($request));
         $config->load('term.academicYear');
         $logger->log(
             'settings.scoring_updated',
@@ -62,7 +62,7 @@ class ScoringSettingsController extends Controller
     /** Which students in Draft classes would change band with the proposed values. */
     public function impact(Request $request, ScoringConfig $config): JsonResponse
     {
-        $values = $this->validated($request);
+        $values = self::validatedThresholds($request);
         $before = Config::fromModel($config);
         $after = new Config($values['min_intermediate'], $values['min_advanced']);
 
@@ -92,7 +92,8 @@ class ScoringSettingsController extends Controller
     }
 
     /** @return array{min_intermediate: float, min_advanced: float} */
-    private function validated(Request $request): array
+    /** Also used by the setup wizard. @return array{min_intermediate: float, min_advanced: float} */
+    public static function validatedThresholds(Request $request): array
     {
         $range = ['required', 'numeric', 'min:'.Config::MIN, 'max:'.Config::MAX, 'multiple_of:0.5'];
         $data = $request->validate([

@@ -14,12 +14,12 @@ use Throwable;
 
 /**
  * Migration from the old program ICP_English_Progress_Report.xlsx (PRD-03 §5.1):
- * sheets "Grade 3"–"Grade 6", rows 6–45, columns B (NIS) … I (comment).
- * Students are created when new, placed in the class named in column D, and scores are set.
+ * sheets "Grade 3"–"Grade 6", rows 6–45, columns B (NIPD) … I (comment).
+ * Students must already exist (NISN is required, the old file has none); they are placed in the class named in column D and scores are set.
  */
 class LegacyExcelImportService
 {
-    private const COLS = ['B' => 'nis', 'C' => 'name', 'D' => 'class', 'E' => 'listening', 'F' => 'reading', 'G' => 'writing', 'H' => 'speaking', 'I' => 'comment'];
+    private const COLS = ['B' => 'nipd', 'C' => 'name', 'D' => 'class', 'E' => 'listening', 'F' => 'reading', 'G' => 'writing', 'H' => 'speaking', 'I' => 'comment'];
 
     public function __construct(
         private ScoreService $scores,
@@ -54,9 +54,9 @@ class LegacyExcelImportService
                     if ($v instanceof RichText) {
                         $v = $v->getPlainText();
                     }
-                    $row[$key] = is_float($v) && floor($v) === $v && $key === 'nis' ? (string) (int) $v : trim((string) $v);
+                    $row[$key] = is_float($v) && floor($v) === $v && $key === 'nipd' ? (string) (int) $v : trim((string) $v);
                 }
-                if ($row['nis'] === '' && $row['name'] === '') {
+                if ($row['nipd'] === '' && $row['name'] === '') {
                     continue;
                 }
                 $rows["Grade {$grade}!{$r}"] = $row;
@@ -75,7 +75,7 @@ class LegacyExcelImportService
     {
         $term->loadMissing('academicYear');
         $classes = $term->classrooms()->get()->keyBy(fn ($c) => mb_strtoupper($c->name));
-        $students = Student::query()->whereIn('nis', array_column($raw, 'nis'))->get()->keyBy('nis');
+        $students = Student::query()->whereIn('nipd', array_column($raw, 'nipd'))->get()->keyBy('nipd');
         $current = Enrollment::query()->with(['classroom', 'score'])->where('term_id', $term->id)
             ->whereIn('student_id', $students->pluck('id'))->get()->keyBy('student_id');
         $seen = [];
@@ -86,19 +86,19 @@ class LegacyExcelImportService
             $errors = [];
             $warnings = [];
             $changes = [];
-            $nis = $r['nis'];
-            $student = $students->get($nis);
+            $nipd = $r['nipd'];
+            $student = $students->get($nipd);
             $class = $classes->get(mb_strtoupper($r['class']));
             $diff = null;
 
-            if ($nis === '') {
-                $errors[] = "{$where}: NIS wajib diisi.";
-            } elseif (! preg_match(StudentImportService::NIS_PATTERN, $nis)) {
-                $errors[] = "{$where}: NIS '{$nis}' harus 3–20 karakter huruf/angka.";
-            } elseif (isset($seen[$nis])) {
-                $errors[] = "{$where}: NIS {$nis} muncul lebih dari sekali ({$seen[$nis]}).";
+            if ($nipd === '') {
+                $errors[] = "{$where}: NIPD wajib diisi.";
+            } elseif (! preg_match(StudentImportService::NIPD_PATTERN, $nipd)) {
+                $errors[] = "{$where}: NIPD '{$nipd}': ".StudentImportService::NIPD_MESSAGE;
+            } elseif (isset($seen[$nipd])) {
+                $errors[] = "{$where}: NIPD {$nipd} muncul lebih dari sekali ({$seen[$nipd]}).";
             }
-            $seen[$nis] ??= $where;
+            $seen[$nipd] ??= $where;
 
             if (! $class) {
                 $errors[] = "{$where}: Kelas '{$r['class']}' tidak ada di periode {$term->fullLabel()}.";
@@ -109,10 +109,8 @@ class LegacyExcelImportService
             }
 
             if (! $student) {
-                if (! preg_match(StudentImportService::NAME_PATTERN, preg_replace('/\s+/', ' ', $r['name']))) {
-                    $errors[] = "{$where}: Nama '{$r['name']}' tidak valid.";
-                }
-                $changes[] = 'Siswa baru';
+                // The old file has no NISN (required): students must be imported first.
+                $errors[] = "{$where}: Siswa NIPD {$nipd} belum terdaftar. Impor data siswa (dengan NISN) lewat menu Impor → Siswa terlebih dahulu.";
             } elseif (mb_strtolower($r['name']) !== mb_strtolower($student->name) && $r['name'] !== '') {
                 $warnings[] = "Nama di file '{$r['name']}' berbeda dengan nama di sistem '{$student->name}'; dipakai nama sistem.";
             }
@@ -147,7 +145,7 @@ class LegacyExcelImportService
             $rows[] = [
                 'line' => $r['line'],
                 'sheet' => $r['sheet'],
-                'nis' => $nis,
+                'nipd' => $nipd,
                 'name' => $student->name ?? $r['name'],
                 'file_name' => $r['name'],
                 'class' => $class->name ?? $r['class'],
@@ -179,11 +177,7 @@ class LegacyExcelImportService
             $values = 0;
 
             foreach ($apply as $row) {
-                $student = Student::query()->firstOrNew(['nis' => $row['nis']]);
-                if (! $student->exists) {
-                    $student->fill(['name' => preg_replace('/\s+/', ' ', $row['file_name']), 'is_active' => true])->save();
-                    $created++;
-                }
+                $student = Student::query()->where('nipd', $row['nipd'])->firstOrFail();
 
                 $class = $classes[$row['class']];
                 $enrollment = $this->enrollments->assign($student, $class, allowMove: true, log: false)

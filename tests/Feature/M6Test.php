@@ -66,7 +66,7 @@ it('backs up and restores all data and files, then requires the PIN again', func
 
     // Damage the data after the backup.
     Score::query()->delete();
-    Student::where('nis', '3001')->update(['name' => 'Rusak']);
+    Student::where('nipd', '3001')->update(['name' => 'Rusak']);
     Storage::disk('local')->deleteDirectory('logos');
     app(PinService::class)->setPin('7351');
 
@@ -77,7 +77,7 @@ it('backs up and restores all data and files, then requires the PIN again', func
         ->assertRedirect('/pin');
 
     expect(Score::count())->toBe(20)
-        ->and(Student::where('nis', '3001')->value('name'))->toBe('Aditya Pratama')
+        ->and(Student::where('nipd', '3001')->value('name'))->toBe('Aditya Pratama')
         ->and(FinalResult::count())->toBe(3)
         ->and(Classroom::where('name', '3A')->first()->current_finalization_id)->not->toBeNull()
         ->and(app(PinService::class)->check(self::PIN))->toBeTrue(); // PIN from the backup

@@ -22,10 +22,10 @@ beforeEach(function () {
         'principal_id_number' => '1234567',
     ]);
     [$this->term] = app(TermService::class)->createTerm(AcademicYear::create(['name' => '2026/2027']), 1, '2026-12-18');
-    $this->class = Classroom::create(['term_id' => $this->term->id, 'grade' => 6, 'name' => '6A', 'homeroom_teacher' => 'Ibu Rina Wulandari, S.Pd.', 'english_teacher' => 'Ms. Sarah Johnson']);
+    $this->class = Classroom::create(['term_id' => $this->term->id, 'grade' => 6, 'name' => '6A', 'homeroom_teacher' => 'Ibu Rina Wulandari, S.Pd.']);
     $this->e = Enrollment::create([
         'classroom_id' => $this->class->id,
-        'student_id' => Student::create(['nis' => '6001', 'name' => 'Muhammad Rizki Ramadhan Putra Pratama Wijaya'])->id, // > 32 chars
+        'student_id' => Student::create(['nipd' => '6001', 'nisn' => '000006001', 'name' => 'Muhammad Rizki Ramadhan Putra Pratama Wijaya'])->id, // > 32 chars
         'term_id' => $this->term->id,
         'roll_no' => 1,
     ]);

@@ -125,15 +125,15 @@
         <table class="info">
             <tr>
                 <td class="lbl">Student Name</td><td class="val name">{{ $r['student']['name'] }}</td>
-                <td class="lbl">Student ID</td><td class="val">{{ $r['student']['nis'] }}</td>
+                <td class="lbl">NIPD</td><td class="val">{{ $r['student']['nipd'] }}</td>
             </tr>
             <tr>
                 <td class="lbl">Class / Grade</td><td class="val">{{ $r['student']['class'] }}  /  Grade {{ $r['student']['grade'] }}</td>
-                <td class="lbl">Semester</td><td class="val">{{ $r['term']['label'] }}</td>
+                <td class="lbl">NISN</td><td class="val">{{ $r['student']['nisn'] ?: '–' }}</td>
             </tr>
             <tr>
                 <td class="lbl">Homeroom Teacher</td><td class="val">{{ $r['teachers']['homeroom'] ?: '–' }}</td>
-                <td class="lbl">Academic Year</td><td class="val">{{ $r['term']['year'] }}</td>
+                <td class="lbl">Semester</td><td class="val">{{ $r['term']['label'] }}  •  {{ $r['term']['year'] }}</td>
             </tr>
         </table>
     </div>

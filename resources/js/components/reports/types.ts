@@ -14,7 +14,7 @@ export type ReportStudent = {
     enrollment_id: number;
     roll_no: number;
     name: string;
-    nis: string;
+    nipd: string;
     is_active: boolean;
     overall_level: 'Beginner' | 'Intermediate' | 'Advanced' | null;
     total: number | null;

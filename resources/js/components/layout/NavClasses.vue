@@ -72,7 +72,7 @@ function tooltip(c: NavClass): string {
 
     return [
         c.name,
-        c.englishTeacher,
+        c.homeroomTeacher,
         `${c.complete}/${c.total} lengkap`,
         status,
     ]

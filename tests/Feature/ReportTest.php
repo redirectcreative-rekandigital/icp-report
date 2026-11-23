@@ -26,10 +26,10 @@ beforeEach(function () {
     $this->settings()->set(['city' => 'Sidoarjo', 'principal_name' => 'Kepala Sekolah', 'principal_id_number' => '987']);
     $this->withPinSession();
     [$this->term] = app(TermService::class)->createTerm(AcademicYear::create(['name' => '2026/2027']), 1, '2026-12-18');
-    $this->class = Classroom::create(['term_id' => $this->term->id, 'grade' => 5, 'name' => '5A', 'english_teacher' => 'Ms. Sarah']);
+    $this->class = Classroom::create(['term_id' => $this->term->id, 'grade' => 5, 'name' => '5A']);
 
-    $this->enroll = function (string $nis, string $name, ?array $s) {
-        $e = Enrollment::create(['classroom_id' => $this->class->id, 'student_id' => Student::create(compact('nis', 'name'))->id, 'term_id' => $this->term->id, 'roll_no' => (int) substr($nis, -1)]);
+    $this->enroll = function (string $nipd, string $name, ?array $s) {
+        $e = Enrollment::create(['classroom_id' => $this->class->id, 'student_id' => Student::create(compact('nipd', 'name') + ['nisn' => '0000'.$nipd])->id, 'term_id' => $this->term->id, 'roll_no' => (int) substr($nipd, -1)]);
         if ($s) {
             Score::create(['enrollment_id' => $e->id] + array_combine(['listening', 'reading', 'writing', 'speaking'], $s));
         }

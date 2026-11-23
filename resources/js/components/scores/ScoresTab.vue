@@ -135,7 +135,7 @@ const visible = computed(() => {
         return (
             (!term ||
                 r.name.toLowerCase().includes(term) ||
-                r.nis.includes(term)) &&
+                r.nipd.includes(term)) &&
             (show.value === 'all' || (show.value === 'complete') === complete)
         );
     });
@@ -533,7 +533,7 @@ defineExpose({ pendingCount: autosave.pendingCount });
                             <th
                                 class="sticky left-10 z-20 min-w-48 border-r bg-muted px-2 py-2 text-left"
                             >
-                                Nama (NIS)
+                                Nama (NIPD)
                             </th>
                             <th
                                 v-for="s in SKILLS"
@@ -603,7 +603,7 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                     {{ row.name }}
                                 </button>
                                 <span class="text-xs text-muted-foreground"
-                                    >{{ row.nis
+                                    >{{ row.nipd
                                     }}{{
                                         row.is_active ? '' : ' • nonaktif'
                                     }}</span

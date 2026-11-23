@@ -49,7 +49,7 @@ class ReportController extends Controller
                 'enrollment_id' => $e->id,
                 'roll_no' => $e->roll_no,
                 'name' => $e->student->name,
-                'nis' => $e->student->nis,
+                'nipd' => $e->student->nipd,
                 'is_active' => $e->student->is_active,
                 'overall_level' => $final?->overall_level ?? $r?->overallLevel,
                 'total' => $final ? $final->total : $r?->total,
@@ -82,7 +82,7 @@ class ReportController extends Controller
 
         return Inertia::render('Reports/Preview', [
             'classroom' => ['id' => $classroom->id, 'name' => $classroom->name, 'status' => $classroom->status, 'term' => $classroom->term->fullLabel()],
-            'student' => ['enrollment_id' => $enrollment->id, 'name' => $enrollment->student->name, 'nis' => $enrollment->student->nis],
+            'student' => ['enrollment_id' => $enrollment->id, 'name' => $enrollment->student->name, 'nipd' => $enrollment->student->nipd],
             'printable' => $idx !== false,
             'prevId' => $idx !== false && $idx > 0 ? $printable[$idx - 1]['enrollment_id'] : null,
             'nextId' => $idx !== false && $idx < $printable->count() - 1 ? $printable[$idx + 1]['enrollment_id'] : null,

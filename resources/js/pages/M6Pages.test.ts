@@ -129,7 +129,7 @@ describe('Impor/Ekspor page', () => {
                     {
                         line: 11,
                         sheet: 'Grade 3',
-                        nis: '8888',
+                        nipd: '8888',
                         name: 'Siswa Baru',
                         file_name: 'Siswa Baru',
                         class: '3B',
@@ -140,7 +140,7 @@ describe('Impor/Ekspor page', () => {
                     {
                         line: 6,
                         sheet: 'Grade 5',
-                        nis: '5001',
+                        nipd: '5001',
                         name: 'Kevin',
                         file_name: 'Kevin',
                         class: '5C',

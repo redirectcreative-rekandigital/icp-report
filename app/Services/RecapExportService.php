@@ -53,7 +53,7 @@ class RecapExportService
 
             return [
                 'no' => $e->roll_no,
-                'nis' => $e->student->nis,
+                'nipd' => $e->student->nipd,
                 'name' => $e->student->name,
                 'raw' => $raw,
                 'comment' => $e->score?->teacher_comment,
@@ -130,7 +130,7 @@ class RecapExportService
         $sheet->setCellValue('A2', "Wali kelas: {$c->homeroom_teacher} • Intermediate ≥ {$config->intermediate} • Advanced ≥ {$config->advanced} (per skill, 5–25)");
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB(self::NAVY);
 
-        $head = ['No', 'NIS', 'Nama', 'Kelas', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar guru',
+        $head = ['No', 'NIPD', 'Nama', 'Kelas', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar guru',
             'Level Listening', 'Level Reading', 'Level Writing', 'Level Speaking',
             'Total', 'Level Total', 'NatGeo (CEFR)', 'Skill terkuat'];
         $this->header($sheet, 4, $head);
@@ -138,7 +138,7 @@ class RecapExportService
         $r = 5;
         foreach ($rows as $row) {
             $sheet->fromArray([$row['no']], null, "A{$r}");
-            $sheet->setCellValueExplicit("B{$r}", $row['nis'], 's');
+            $sheet->setCellValueExplicit("B{$r}", $row['nipd'], 's');
             $sheet->fromArray([
                 $row['name'], $c->name,
                 ...array_values($row['raw']),
@@ -206,15 +206,15 @@ class RecapExportService
 
         $sheet->setCellValue('A1', "TEMPLATE NILAI KELAS {$classroom->name} — {$classroom->term->fullLabel()}");
         $sheet->setCellValue('A2', 'Isi skor 5–25 (boleh ,5).'.($natgeo ? ' NatGeo: Pre-A1, A1, A2, B1 atau B2.' : '')
-            .' Sel kosong = nilai tidak diubah. Ketik - untuk mengosongkan (dengan opsi "Timpa"). Jangan ubah kolom NIS.');
+            .' Sel kosong = nilai tidak diubah. Ketik - untuk mengosongkan (dengan opsi "Timpa"). Jangan ubah kolom NIPD.');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB(self::NAVY);
         $sheet->getStyle('A2')->getFont()->setItalic(true)->getColor()->setRGB('4B5563');
-        $this->header($sheet, 3, ['No', 'NIS*', 'Nama', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar', ...($natgeo ? ['NatGeo'] : [])]);
+        $this->header($sheet, 3, ['No', 'NIPD*', 'Nama', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar', ...($natgeo ? ['NatGeo'] : [])]);
 
         $r = 4;
         foreach ($this->classRows($classroom) as $row) {
             $sheet->fromArray([$row['no']], null, "A{$r}");
-            $sheet->setCellValueExplicit("B{$r}", $row['nis'], 's');
+            $sheet->setCellValueExplicit("B{$r}", $row['nipd'], 's');
             $sheet->fromArray([$row['name'], ...array_values($row['raw']), $row['comment'], ...($natgeo ? [$row['natgeo']] : [])], null, "C{$r}", true);
             $r++;
         }

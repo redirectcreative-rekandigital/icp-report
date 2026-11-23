@@ -41,7 +41,7 @@ class StudentController extends Controller
             ->when($term, fn ($q) => $q->with(['enrollments' => fn ($e) => $e->where('term_id', $term->id)->with('classroom:id,name,status')]))
             ->when($filters['q'] ?? null, function ($q, $s) {
                 $like = '%'.addcslashes($s, '%_\\').'%';
-                $q->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('nis', 'like', $like));
+                $q->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('nipd', 'like', $like)->orWhere('nisn', 'like', $like));
             })
             ->when($status !== 'all', fn ($q) => $q->where('is_active', $status === 'active'))
             ->when($term && $class === 'none', fn ($q) => $q->whereDoesntHave('enrollments', fn ($e) => $e->where('term_id', $term->id)))
@@ -58,7 +58,8 @@ class StudentController extends Controller
 
                 return [
                     'id' => $s->id,
-                    'nis' => $s->nis,
+                    'nipd' => $s->nipd,
+                    'nisn' => $s->nisn,
                     'name' => $s->name,
                     'gender' => $s->gender,
                     'is_active' => $s->is_active,
@@ -93,7 +94,7 @@ class StudentController extends Controller
 
         DB::transaction(function () use ($data) {
             $student = Student::query()->create(collect($data)->except('classroom_id')->all() + ['is_active' => true]);
-            $this->logger->log('student.created', 'data', "Siswa {$student->name} ({$student->nis}) ditambahkan.", $student);
+            $this->logger->log('student.created', 'data', "Siswa {$student->name} ({$student->nipd}) ditambahkan.", $student);
 
             if (! empty($data['classroom_id'])) {
                 $this->enrollments->assign($student, Classroom::query()->findOrFail($data['classroom_id']));
@@ -110,7 +111,7 @@ class StudentController extends Controller
 
         DB::transaction(function () use ($data, $student, $term, $request) {
             $student->update(collect($data)->except('classroom_id')->all());
-            $this->logger->log('student.updated', 'data', "Data siswa {$student->name} ({$student->nis}) diperbarui.", $student);
+            $this->logger->log('student.updated', 'data', "Data siswa {$student->name} ({$student->nipd}) diperbarui.", $student);
 
             if (! $term || ! $request->has('classroom_id')) {
                 return;
@@ -139,7 +140,7 @@ class StudentController extends Controller
             throw new BusinessRuleException("{$student->name} terdaftar di kelas {$final->classroom->name} yang sudah final.");
         }
 
-        $label = "{$student->name} ({$student->nis})";
+        $label = "{$student->name} ({$student->nipd})";
         DB::transaction(function () use ($student) {
             $classes = Classroom::query()->whereIn('id', $student->enrollments()->pluck('classroom_id'))->get();
             $student->delete();
@@ -223,7 +224,8 @@ class StudentController extends Controller
         return Inertia::render('Students/Show', [
             'student' => [
                 'id' => $student->id,
-                'nis' => $student->nis,
+                'nipd' => $student->nipd,
+                'nisn' => $student->nisn,
                 'name' => $student->name,
                 'gender' => $student->gender,
                 'is_active' => $student->is_active,
@@ -253,23 +255,28 @@ class StudentController extends Controller
         $activeTermId = Term::query()->where('is_active', true)->value('id');
 
         $data = $request->validate([
-            'nis' => ['required', 'regex:'.StudentImportService::NIS_PATTERN, Rule::unique('students', 'nis')->ignore($student?->id)],
+            'nipd' => ['required', 'regex:'.StudentImportService::NIPD_PATTERN, Rule::unique('students', 'nipd')->ignore($student?->id)],
+            'nisn' => ['required', 'regex:'.StudentImportService::NISN_PATTERN, Rule::unique('students', 'nisn')->ignore($student?->id)],
             'name' => ['required', 'regex:'.StudentImportService::NAME_PATTERN],
             'gender' => ['nullable', Rule::in(['L', 'P'])],
             'classroom_id' => ['nullable', 'integer', Rule::exists('classrooms', 'id')->where('term_id', $activeTermId)],
             'notes' => ['nullable', 'string', 'max:300'],
             'is_active' => ['sometimes', 'boolean'],
         ], [
-            'nis.required' => 'NIS wajib diisi.',
-            'nis.regex' => 'NIS harus 3–20 karakter huruf/angka tanpa spasi.',
-            'nis.unique' => 'NIS ini sudah dipakai siswa lain.',
+            'nipd.required' => 'NIPD wajib diisi.',
+            'nipd.regex' => StudentImportService::NIPD_MESSAGE,
+            'nipd.unique' => 'NIPD ini sudah dipakai siswa lain.',
+            'nisn.required' => 'NISN wajib diisi.',
+            'nisn.regex' => StudentImportService::NISN_MESSAGE,
+            'nisn.unique' => 'NISN ini sudah dipakai siswa lain.',
             'name.required' => 'Nama lengkap wajib diisi.',
             'name.regex' => 'Nama 2–100 karakter, hanya huruf, spasi, apostrof, titik, atau tanda hubung.',
             'classroom_id.exists' => 'Pilih kelas dari periode aktif.',
             'notes.max' => 'Catatan maksimal 300 karakter.',
         ]);
 
-        $data['nis'] = trim($data['nis']);
+        $data['nipd'] = trim($data['nipd']);
+        $data['nisn'] = trim($data['nisn']);
         $data['name'] = preg_replace('/\s+/', ' ', trim($data['name']));
 
         return $data;

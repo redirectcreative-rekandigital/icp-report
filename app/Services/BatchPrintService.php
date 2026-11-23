@@ -164,7 +164,7 @@ class BatchPrintService
                 $i = (int) basename($f, '.pdf');
                 $e = $names[$batch->enrollment_ids[$i]];
                 $zip->addFile($disk->path($f), ReportDataBuilder::filename([
-                    'student' => ['nis' => $e->student->nis, 'name' => $e->student->name],
+                    'student' => ['nipd' => $e->student->nipd, 'name' => $e->student->name],
                     'term' => ['year' => $e->classroom->term->academicYear->name, 'label' => $e->classroom->term->label],
                     'paper' => $batch->paper,
                 ]));

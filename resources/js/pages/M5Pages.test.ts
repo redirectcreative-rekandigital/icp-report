@@ -311,7 +311,7 @@ describe('Student profile page', () => {
         const w = mountPage(StudentShow, {
             student: {
                 id: 1,
-                nis: '5001',
+                nipd: '5001',
                 name: 'Kevin Wijaya',
                 gender: 'L',
                 is_active: true,

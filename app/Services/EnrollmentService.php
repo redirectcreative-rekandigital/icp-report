@@ -123,7 +123,7 @@ class EnrollmentService
             ->join('students', 'students.id', '=', 'enrollments.student_id')
             ->where('enrollments.classroom_id', $classroom->id)
             ->orderBy('students.name')
-            ->orderBy('students.nis')
+            ->orderBy('students.nipd')
             ->pluck('enrollments.id');
 
         foreach ($ids as $i => $id) {

@@ -75,7 +75,7 @@ class ReportDataBuilder
             'finalized_at' => null,
         ];
         $student = new Enrollment;
-        $student->setRelation('student', new Student(['name' => 'Kevin Wijaya', 'nis' => '5001']));
+        $student->setRelation('student', new Student(['name' => 'Kevin Wijaya', 'nipd' => '6001', 'nisn' => '0141234567']));
 
         return $this->assemble($student, $src, ReportLayout::normalize($layout), $paper, false, true, sample: true);
     }
@@ -263,7 +263,7 @@ class ReportDataBuilder
             ],
             'title' => $layout['header']['title'],
             'subtitle' => "Academic Year {$src['term']['year']}  •  {$src['term']['label']}",
-            'student' => ['name' => $name, 'nis' => $e->student->nis, 'class' => $class['name'], 'grade' => $class['grade']],
+            'student' => ['name' => $name, 'nipd' => $e->student->nipd, 'nisn' => $e->student->nisn, 'class' => $class['name'], 'grade' => $class['grade']],
             'term' => $src['term'],
             'teachers' => ['homeroom' => $class['homeroom_teacher'] ?? ''],
             'skills' => $skills,
@@ -295,13 +295,13 @@ class ReportDataBuilder
         return $v === null ? '–' : rtrim(rtrim(number_format($v, 1, '.', ''), '0'), '.');
     }
 
-    /** Report_{NIS}_{Nama}_{2026-2027}_S1_F4.pdf */
+    /** Report_{NIPD}_{Nama}_{2026-2027}_S1_F4.pdf */
     public static function filename(array $data): string
     {
         $name = preg_replace('/[^A-Za-z0-9]+/', '_', $data['student']['name']);
         $year = str_replace('/', '-', $data['term']['year']);
         $sem = preg_replace('/\D/', '', $data['term']['label']) ?: '1';
 
-        return 'Report_'.$data['student']['nis'].'_'.trim($name, '_')."_{$year}_S{$sem}_".strtoupper($data['paper']).'.pdf';
+        return 'Report_'.$data['student']['nipd'].'_'.trim($name, '_')."_{$year}_S{$sem}_".strtoupper($data['paper']).'.pdf';
     }
 }

@@ -63,7 +63,6 @@ Route::middleware('pin.verified')->group(function () {
     Route::get('/pengaturan/sekolah', [SchoolSettingsController::class, 'edit'])->name('settings.school');
     Route::put('/pengaturan/sekolah', [SchoolSettingsController::class, 'update'])->name('settings.school.update');
     Route::post('/pengaturan/sekolah/logo/{slot}', [SchoolSettingsController::class, 'uploadLogo'])->name('settings.logo.upload');
-    Route::delete('/pengaturan/sekolah/logo/{slot}', [SchoolSettingsController::class, 'deleteLogo'])->name('settings.logo.delete');
 
     Route::get('/pengaturan/keamanan', [SecuritySettingsController::class, 'edit'])->name('settings.security');
     Route::put('/pengaturan/keamanan/sesi', [SecuritySettingsController::class, 'updateSession'])->name('settings.security.session');

@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 
 /** Student form fields (PRD-03 §4.2), shared by the list and the profile page. */
 type StudentForm = {
-    nis: string;
+    nipd: string;
+    nisn: string;
     name: string;
     gender: '' | 'L' | 'P';
     classroom_id: string;
@@ -26,17 +27,39 @@ defineProps<{
 
 <template>
     <div class="grid gap-4">
-        <div class="grid gap-1.5">
-            <Label for="nis">NIS <span class="text-destructive">*</span></Label>
-            <Input
-                id="nis"
-                v-model="form.nis"
-                maxlength="20"
-                autocomplete="off"
-                class="font-mono"
-                :aria-invalid="!!form.errors.nis"
-            />
-            <InputError :message="form.errors.nis" />
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-1.5">
+                <Label for="nipd"
+                    >NIPD <span class="text-destructive">*</span></Label
+                >
+                <Input
+                    id="nipd"
+                    v-model="form.nipd"
+                    maxlength="5"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    placeholder="maks. 5 digit"
+                    class="font-mono"
+                    :aria-invalid="!!form.errors.nipd"
+                />
+                <InputError :message="form.errors.nipd" />
+            </div>
+            <div class="grid gap-1.5">
+                <Label for="nisn"
+                    >NISN <span class="text-destructive">*</span></Label
+                >
+                <Input
+                    id="nisn"
+                    v-model="form.nisn"
+                    maxlength="10"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    placeholder="maks. 10 digit"
+                    class="font-mono"
+                    :aria-invalid="!!form.errors.nisn"
+                />
+                <InputError :message="form.errors.nisn" />
+            </div>
         </div>
         <div class="grid gap-1.5">
             <Label for="student-name"

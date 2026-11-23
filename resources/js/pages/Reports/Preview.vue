@@ -35,7 +35,7 @@ const props = defineProps<{
         status: 'draft' | 'final';
         term: string;
     };
-    student: { enrollment_id: number; name: string; nis: string };
+    student: { enrollment_id: number; name: string; nipd: string };
     printable: boolean;
     prevId: number | null;
     nextId: number | null;
@@ -148,8 +148,8 @@ usePageTour(() => 'rapor-preview');
             <div class="min-w-0">
                 <p class="truncate font-semibold">{{ student.name }}</p>
                 <p class="text-xs text-muted-foreground">
-                    {{ position ? `${position}/${count} • ` : '' }}NIS
-                    {{ student.nis }}
+                    {{ position ? `${position}/${count} • ` : '' }}NIPD
+                    {{ student.nipd }}
                 </p>
             </div>
             <TourButton tour="rapor-preview" />

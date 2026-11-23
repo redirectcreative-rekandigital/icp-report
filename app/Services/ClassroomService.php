@@ -134,8 +134,6 @@ class ClassroomService
                     'name' => $row['name'],
                     'homeroom_teacher' => $src->homeroom_teacher,
                     'homeroom_id_number' => $src->homeroom_id_number,
-                    'english_teacher' => $src->english_teacher,
-                    'english_id_number' => $src->english_id_number,
                 ]);
                 $classes++;
 

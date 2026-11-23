@@ -152,7 +152,7 @@ const cellState = (field: Field) =>
                         />
                     </div>
                     <SheetDescription
-                        >NIS {{ row.nis }} • Kelas {{ classroom.name }} •
+                        >NIPD {{ row.nipd }} • Kelas {{ classroom.name }} •
                         {{ position }}/{{ count }}</SheetDescription
                     >
                 </SheetHeader>

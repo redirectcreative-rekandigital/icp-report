@@ -10,7 +10,7 @@ class Classroom extends Model
 {
     protected $fillable = [
         'term_id', 'grade', 'name', 'homeroom_teacher', 'homeroom_id_number',
-        'english_teacher', 'english_id_number', 'status', 'finalized_at', 'current_finalization_id',
+        'status', 'finalized_at', 'current_finalization_id',
     ];
 
     protected function casts(): array

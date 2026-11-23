@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\DB;
 class StudentImportService
 {
     public const COLUMNS = [
-        'nis' => ['nis', 'no induk', 'nomor induk', 'student id', 'student id (nis)'],
+        'nipd' => ['nipd', 'nis', 'no induk', 'nomor induk', 'student id'],
+        'nisn' => ['nisn'],
         'name' => ['nama', 'nama lengkap', 'nama siswa', 'student name', 'name'],
         'gender' => ['l/p', 'jk', 'jenis kelamin', 'gender'],
         'class' => ['kelas', 'class', 'rombel'],
@@ -25,14 +26,20 @@ class StudentImportService
 
     public const NAME_PATTERN = "/^[\\p{L}\\s'.\\-]{2,100}$/u";
 
-    public const NIS_PATTERN = '/^[A-Za-z0-9]{3,20}$/';
+    public const NIPD_PATTERN = '/^\d{1,5}$/';
+
+    public const NISN_PATTERN = '/^\d{1,10}$/';
+
+    public const NIPD_MESSAGE = 'NIPD harus berupa angka, maksimal 5 digit.';
+
+    public const NISN_MESSAGE = 'NISN harus berupa angka, maksimal 10 digit.';
 
     public function __construct(private EnrollmentService $enrollments, private ActivityLogger $logger) {}
 
     /** @return array<int, array<string, string>> raw rows keyed by spreadsheet row */
     public function read(string $path, string $extension): array
     {
-        return SpreadsheetReader::read($path, $extension, self::COLUMNS, ['nis', 'name', 'class'])['rows'];
+        return SpreadsheetReader::read($path, $extension, self::COLUMNS, ['nipd', 'nisn', 'name', 'class'])['rows'];
     }
 
     /**
@@ -43,7 +50,8 @@ class StudentImportService
     {
         $term->loadMissing('academicYear');
         $classes = $term->classrooms()->get()->keyBy(fn (Classroom $c) => mb_strtoupper($c->name));
-        $students = Student::query()->whereIn('nis', array_column($raw, 'nis'))->get()->keyBy('nis');
+        $students = Student::query()->whereIn('nipd', array_column($raw, 'nipd'))->get()->keyBy('nipd');
+        $byNisn = Student::query()->whereIn('nisn', array_column($raw, 'nisn'))->get()->keyBy('nisn');
         $current = Enrollment::query()
             ->with('classroom')
             ->where('term_id', $term->id)
@@ -52,25 +60,39 @@ class StudentImportService
             ->keyBy('student_id');
 
         $firstLine = [];
+        $firstNisn = [];
         $rows = [];
 
         foreach ($raw as $line => $r) {
             $errors = [];
             $warnings = [];
             $changes = [];
-            $nis = $r['nis'];
+            $nipd = $r['nipd'];
+            $nisn = $r['nisn'] ?? '';
             $name = preg_replace('/\s+/', ' ', $r['name']);
             $gender = self::gender($r['gender'] ?? '');
             $className = mb_strtoupper($r['class']);
 
-            if ($nis === '') {
-                $errors[] = "Baris {$line}: NIS wajib diisi.";
-            } elseif (! preg_match(self::NIS_PATTERN, $nis)) {
-                $errors[] = "Baris {$line}: NIS '{$nis}' harus 3–20 karakter huruf/angka.";
-            } elseif (isset($firstLine[$nis])) {
-                $errors[] = "Baris {$line}: NIS {$nis} muncul lebih dari sekali (baris {$firstLine[$nis]} dan {$line}).";
+            if ($nipd === '') {
+                $errors[] = "Baris {$line}: NIPD wajib diisi.";
+            } elseif (! preg_match(self::NIPD_PATTERN, $nipd)) {
+                $errors[] = "Baris {$line}: NIPD '{$nipd}': ".self::NIPD_MESSAGE;
+            } elseif (isset($firstLine[$nipd])) {
+                $errors[] = "Baris {$line}: NIPD {$nipd} muncul lebih dari sekali (baris {$firstLine[$nipd]} dan {$line}).";
             } else {
-                $firstLine[$nis] = $line;
+                $firstLine[$nipd] = $line;
+            }
+
+            if ($nisn === '') {
+                $errors[] = "Baris {$line}: NISN wajib diisi.";
+            } elseif (! preg_match(self::NISN_PATTERN, $nisn)) {
+                $errors[] = "Baris {$line}: NISN '{$nisn}': ".self::NISN_MESSAGE;
+            } elseif (isset($firstNisn[$nisn])) {
+                $errors[] = "Baris {$line}: NISN {$nisn} muncul lebih dari sekali (baris {$firstNisn[$nisn]} dan {$line}).";
+            } elseif (($owner = $byNisn->get($nisn)) && $owner->nipd !== $nipd) {
+                $errors[] = "Baris {$line}: NISN {$nisn} sudah dipakai siswa {$owner->name} (NIPD {$owner->nipd}).";
+            } else {
+                $firstNisn[$nisn] = $line;
             }
 
             if ($gender === false) {
@@ -87,7 +109,7 @@ class StudentImportService
                 $errors[] = "Baris {$line}: Kelas {$classroom->name} sudah final. Batalkan finalisasi untuk menambah siswa.";
             }
 
-            $student = $students->get($nis);
+            $student = $students->get($nipd);
 
             if (! $student) {
                 if ($name === '') {
@@ -97,11 +119,15 @@ class StudentImportService
                 }
             } else {
                 if (! $student->is_active) {
-                    $errors[] = "Baris {$line}: Siswa NIS {$nis} berstatus nonaktif. Aktifkan di menu Siswa terlebih dahulu.";
+                    $errors[] = "Baris {$line}: Siswa NIPD {$nipd} berstatus nonaktif. Aktifkan di menu Siswa terlebih dahulu.";
                 }
 
                 if ($name !== '' && mb_strtolower($name) !== mb_strtolower($student->name)) {
                     $warnings[] = "Nama di file '{$name}' berbeda dengan nama di sistem '{$student->name}'; dipakai nama sistem.";
+                }
+
+                if ($nisn !== '' && $nisn !== $student->nisn) {
+                    $changes[] = 'NISN '.($student->nisn ?? '–')." → {$nisn}";
                 }
 
                 if ($gender && $gender !== $student->gender) {
@@ -135,7 +161,8 @@ class StudentImportService
 
             $rows[] = [
                 'line' => $line,
-                'nis' => $nis,
+                'nipd' => $nipd,
+                'nisn' => $nisn,
                 'name' => $student->name ?? $name,
                 'file_name' => $name,
                 'gender' => $gender ?: ($student->gender ?? null),
@@ -178,13 +205,13 @@ class StudentImportService
                     continue;
                 }
 
-                $student = Student::query()->firstOrNew(['nis' => $row['nis']]);
+                $student = Student::query()->firstOrNew(['nipd' => $row['nipd']]);
                 $isNew = ! $student->exists;
 
                 if ($isNew) {
-                    $student->fill(['name' => $row['file_name'], 'gender' => $row['gender'], 'is_active' => true])->save();
-                } elseif ($row['gender'] && $row['gender'] !== $student->gender) {
-                    $student->update(['gender' => $row['gender']]);
+                    $student->fill(['nisn' => $row['nisn'], 'name' => $row['file_name'], 'gender' => $row['gender'], 'is_active' => true])->save();
+                } else {
+                    $student->update(['nisn' => $row['nisn']] + ($row['gender'] ? ['gender' => $row['gender']] : []));
                 }
 
                 $this->enrollments->assign($student, $classes[$row['class']], allowMove: true, log: false);

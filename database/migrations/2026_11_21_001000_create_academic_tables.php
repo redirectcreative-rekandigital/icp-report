@@ -48,8 +48,6 @@ return new class extends Migration
             $table->string('name', 10);
             $table->string('homeroom_teacher', 100)->nullable();
             $table->string('homeroom_id_number', 30)->nullable();
-            $table->string('english_teacher', 100)->nullable();
-            $table->string('english_id_number', 30)->nullable();
             $table->string('status', 10)->default('draft'); // draft | final
             $table->timestamp('finalized_at')->nullable();
             $table->unsignedBigInteger('current_finalization_id')->nullable();
@@ -61,7 +59,8 @@ return new class extends Migration
 
         Schema::create('students', function (Blueprint $table) {
             $table->id();
-            $table->string('nis', 20)->unique();
+            $table->string('nipd', 5)->unique(); // Nomor Induk Peserta Didik (sekolah), ≤ 5 digit
+            $table->string('nisn', 10)->unique(); // Nomor Induk Siswa Nasional, ≤ 10 digit
             $table->string('name', 100)->index();
             $table->char('gender', 1)->nullable(); // L | P
             $table->boolean('is_active')->default(true)->index();

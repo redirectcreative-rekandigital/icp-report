@@ -14,7 +14,7 @@ type ClassRow = {
     id: number;
     grade: number;
     name: string;
-    english_teacher: string | null;
+    homeroom_teacher: string | null;
     status: 'draft' | 'final';
     total: number;
     complete: number;
@@ -117,7 +117,7 @@ const groups = computed(() =>
                     :id="c.id"
                     :key="c.id"
                     :name="c.name"
-                    :english-teacher="c.english_teacher"
+                    :homeroom-teacher="c.homeroom_teacher"
                     :status="c.status"
                     :complete="c.complete"
                     :total="c.total"

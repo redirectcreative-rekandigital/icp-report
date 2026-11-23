@@ -18,17 +18,13 @@ class Settings
 
     public const DEFAULTS = [
         'school_name' => 'SD Muhammadiyah Wonorejo',
-        'school_address' => '',
         'program_name' => 'International Class Program',
-        'partner_name' => '',
         'city' => 'Wonorejo',
         'band_comments' => [],
         'principal_name' => '',
         'principal_id_label' => 'NBM',
         'principal_id_number' => '',
         'school_logo_path' => null,
-        'second_logo_path' => null,
-        'partner_logo_path' => null,
         'session_idle_minutes' => 60,
         'show_documents_menu' => true,
         'active_term_id' => null,

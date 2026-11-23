@@ -51,8 +51,6 @@ type ClassRow = {
     name: string;
     homeroom_teacher: string | null;
     homeroom_id_number: string | null;
-    english_teacher: string | null;
-    english_id_number: string | null;
     status: 'draft' | 'final';
     students: number;
     has_scores: boolean;
@@ -87,8 +85,6 @@ const form = useForm({
     name: '',
     homeroom_teacher: '',
     homeroom_id_number: '',
-    english_teacher: '',
-    english_id_number: '',
 });
 
 function suggestName(grade: number): string {
@@ -114,8 +110,6 @@ function openCreate(): void {
         name: suggestName(3),
         homeroom_teacher: '',
         homeroom_id_number: '',
-        english_teacher: '',
-        english_id_number: '',
     });
     form.reset();
     form.clearErrors();
@@ -129,8 +123,6 @@ function openEdit(c: ClassRow): void {
         name: c.name,
         homeroom_teacher: c.homeroom_teacher ?? '',
         homeroom_id_number: c.homeroom_id_number ?? '',
-        english_teacher: c.english_teacher ?? '',
-        english_id_number: c.english_id_number ?? '',
     });
     form.reset();
     form.clearErrors();
@@ -381,7 +373,6 @@ function runCopy(): void {
                             <TableHead class="w-20">Kelas</TableHead>
                             <TableHead class="w-20">Jenjang</TableHead>
                             <TableHead>Wali Kelas</TableHead>
-                            <TableHead>Guru B. Inggris</TableHead>
                             <TableHead class="w-24 text-right">Siswa</TableHead>
                             <TableHead class="w-24">Status</TableHead>
                             <TableHead class="w-14" />
@@ -401,9 +392,6 @@ function runCopy(): void {
                                     >NBM {{ c.homeroom_id_number }}</span
                                 >
                             </TableCell>
-                            <TableCell>{{
-                                c.english_teacher || '–'
-                            }}</TableCell>
                             <TableCell class="text-right tabular-nums">{{
                                 c.students
                             }}</TableCell>
@@ -464,8 +452,7 @@ function runCopy(): void {
                         >
                     </div>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Wali: {{ c.homeroom_teacher || '–' }} • Guru:
-                        {{ c.english_teacher || '–' }}
+                        Wali kelas: {{ c.homeroom_teacher || '–' }}
                     </p>
                     <div class="mt-3 flex gap-2">
                         <Button size="sm" variant="outline" as-child
@@ -563,29 +550,6 @@ function runCopy(): void {
                         class="tabular-nums"
                     />
                     <InputError :message="form.errors.homeroom_id_number" />
-                </div>
-                <div class="grid gap-1.5">
-                    <Label for="english_teacher"
-                        >Guru bahasa Inggris (ICP)</Label
-                    >
-                    <Input
-                        id="english_teacher"
-                        v-model="form.english_teacher"
-                        maxlength="100"
-                    />
-                    <InputError :message="form.errors.english_teacher" />
-                </div>
-                <div class="grid gap-1.5">
-                    <Label for="english_id_number"
-                        >Nomor induk guru ICP (opsional)</Label
-                    >
-                    <Input
-                        id="english_id_number"
-                        v-model="form.english_id_number"
-                        maxlength="30"
-                        class="tabular-nums"
-                    />
-                    <InputError :message="form.errors.english_id_number" />
                 </div>
             </form>
             <template #footer>

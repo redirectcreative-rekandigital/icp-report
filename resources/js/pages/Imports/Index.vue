@@ -47,7 +47,7 @@ type Status = 'new' | 'updated' | 'unchanged' | 'warning' | 'error';
 type Row = {
     line: number;
     sheet?: string;
-    nis: string;
+    nipd: string;
     name: string;
     file_name: string;
     gender?: string | null;
@@ -344,7 +344,7 @@ useDialogTour(
                                 <TableRow>
                                     <TableHead class="w-24">Baris</TableHead>
                                     <TableHead class="w-36">Status</TableHead>
-                                    <TableHead class="w-28">NIS</TableHead>
+                                    <TableHead class="w-28">NIPD</TableHead>
                                     <TableHead>Nama</TableHead>
                                     <TableHead class="w-16">Kelas</TableHead>
                                     <TableHead>Keterangan</TableHead>
@@ -382,7 +382,7 @@ useDialogTour(
                                         </span>
                                     </TableCell>
                                     <TableCell class="font-mono text-sm">{{
-                                        r.nis || '–'
+                                        r.nipd || '–'
                                     }}</TableCell>
                                     <TableCell>{{ r.name || '–' }}</TableCell>
                                     <TableCell class="font-semibold">{{
@@ -446,7 +446,7 @@ useDialogTour(
                                         >{{ statusMeta[r.status].label }}</span
                                     >
                                     Baris {{ r.line }} •
-                                    {{ r.nis || 'tanpa NIS' }}
+                                    {{ r.nipd || 'tanpa NIPD' }}
                                 </p>
                                 <p v-for="m in r.messages" :key="m">{{ m }}</p>
                             </li>
@@ -504,8 +504,8 @@ useDialogTour(
                     <CardHeader>
                         <CardTitle>Impor siswa</CardTitle>
                         <CardDescription
-                            >Kolom: NIS*, Nama*, L/P, Kelas* (harus ada di
-                            {{ term.label }}).</CardDescription
+                            >Kolom: NIPD*, NISN*, Nama*, L/P, Kelas* (harus ada
+                            di {{ term.label }}).</CardDescription
                         >
                     </CardHeader>
                     <CardContent class="grid gap-3">

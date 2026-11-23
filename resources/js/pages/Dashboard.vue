@@ -898,7 +898,7 @@ const diff = (a: number | null, b: number | null) =>
                             <Label>Kohort</Label>
                             <NativeSelect v-model="cohort" class="w-48">
                                 <option value="same">
-                                    Siswa yang sama (NIS)
+                                    Siswa yang sama (NIPD)
                                 </option>
                                 <option value="all">Semua siswa</option>
                             </NativeSelect>

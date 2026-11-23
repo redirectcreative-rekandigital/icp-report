@@ -18,10 +18,10 @@ beforeEach(function () {
     $this->seed(CefrReferenceSeeder::class);
     $this->withPinSession();
     [$this->term] = app(TermService::class)->createTerm(AcademicYear::create(['name' => '2026/2027']), 1, '2026-12-18');
-    $this->class = Classroom::create(['term_id' => $this->term->id, 'grade' => 5, 'name' => '5A', 'english_teacher' => 'Ms. Sarah']);
+    $this->class = Classroom::create(['term_id' => $this->term->id, 'grade' => 5, 'name' => '5A', 'homeroom_teacher' => 'Bu Rina']);
 
-    $add = function (string $nis, string $name, array $s, ?string $comment = null) {
-        $e = Enrollment::create(['classroom_id' => $this->class->id, 'student_id' => Student::create(compact('nis', 'name'))->id, 'term_id' => $this->term->id]);
+    $add = function (string $nipd, string $name, array $s, ?string $comment = null) {
+        $e = Enrollment::create(['classroom_id' => $this->class->id, 'student_id' => Student::create(compact('nipd', 'name') + ['nisn' => '0000'.$nipd])->id, 'term_id' => $this->term->id]);
         Score::create(['enrollment_id' => $e->id, 'teacher_comment' => $comment] + $s);
 
         return $e;
@@ -67,7 +67,7 @@ it('finalizes: snapshot, final results, lock, log', function () {
     $snapshot = Finalization::find($class->current_finalization_id)->config_snapshot;
     expect($snapshot['scoring']['intermediate'])->toEqual(13)
         ->and($snapshot['band_comments'])->toHaveKeys(['Beginner', 'Intermediate', 'Advanced'])
-        ->and($snapshot['classroom']['english_teacher'])->toBe('Ms. Sarah')
+        ->and($snapshot['classroom']['homeroom_teacher'])->toBe('Bu Rina')
         ->and($snapshot['school']['name'])->toBe('SD Muhammadiyah Wonorejo')
         ->and($snapshot['term']['report_date'])->toBe('2026-12-18')
         ->and($snapshot['descriptors'])->toHaveCount(12);
@@ -89,7 +89,7 @@ it('keeps final results when thresholds change afterwards', function () {
 
 it('requires the National Geographic level before finalizing grade 6', function () {
     $g6 = Classroom::create(['term_id' => $this->term->id, 'grade' => 6, 'name' => '6A']);
-    $e = Enrollment::create(['classroom_id' => $g6->id, 'student_id' => Student::create(['nis' => '6001', 'name' => 'Putri'])->id, 'term_id' => $this->term->id]);
+    $e = Enrollment::create(['classroom_id' => $g6->id, 'student_id' => Student::create(['nipd' => '6001', 'nisn' => '000006001', 'name' => 'Putri'])->id, 'term_id' => $this->term->id]);
     $score = Score::create(['enrollment_id' => $e->id, 'listening' => 16, 'reading' => 17, 'writing' => 15, 'speaking' => 16]);
 
     $this->getJson("/kelas/{$g6->id}/kesiapan-final")->assertJsonPath('incomplete.0.missing', ['NatGeo']);

@@ -217,7 +217,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'student-search',
                 title: 'Cari',
-                text: 'Cari nama atau NIS. Tekan / untuk langsung mengetik.',
+                text: 'Cari nama, NIPD, atau NISN. Tekan / untuk langsung mengetik.',
             },
             {
                 anchor: 'student-filters',
@@ -229,7 +229,7 @@ export const tours: Record<TourId, TourDef> = {
                 anchor: 'student-add',
                 mobileAnchor: 'student-fab',
                 title: 'Tambah siswa',
-                text: 'Isi NIS, nama, dan kelas. Untuk banyak siswa sekaligus, gunakan Impor dari Excel.',
+                text: 'Isi NIPD (maks. 5 digit), NISN (maks. 10 digit), nama, dan kelas. Untuk banyak siswa sekaligus, gunakan Impor dari Excel.',
             },
             {
                 anchor: 'student-table',
@@ -290,7 +290,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'term-manage',
                 title: 'Kelola kelas',
-                text: 'Tambah kelas, wali kelas, dan guru bahasa Inggris untuk semester ini.',
+                text: 'Tambah kelas dan wali kelas untuk semester ini.',
             },
         ],
     },
@@ -300,7 +300,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'class-add',
                 title: 'Tambah kelas',
-                text: 'Isi jenjang, nama kelas, wali kelas (dengan NBM), dan guru bahasa Inggris.',
+                text: 'Isi jenjang, nama kelas, dan wali kelas (dengan NBM).',
             },
             {
                 anchor: 'class-copy',
@@ -325,7 +325,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'import-students',
                 title: 'Impor siswa',
-                text: 'Unduh template, isi NIS, nama, L/P, dan kelas, lalu unggah.',
+                text: 'Unduh template, isi NIPD, NISN, nama, L/P, dan kelas, lalu unggah.',
             },
             {
                 anchor: 'import-scores',
@@ -406,7 +406,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'set-identity',
                 title: 'Identitas sekolah',
-                text: 'Nama, alamat, dan kontak sekolah tampil di kop rapor.',
+                text: 'Nama sekolah tampil di kop rapor; Tempat ditulis sebelum tanggal rapor (mis. Wonorejo, 18 December 2026).',
             },
             {
                 anchor: 'set-principal',
@@ -416,7 +416,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'set-logos',
                 title: 'Logo',
-                text: 'Logo sekolah, logo Muhammadiyah, dan logo mitra untuk kop rapor.',
+                text: 'Logo sekolah untuk kiri kop rapor. Logo National Geographic Learning sudah tersedia otomatis.',
             },
             {
                 anchor: 'set-save',

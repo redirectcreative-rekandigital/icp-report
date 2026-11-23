@@ -62,7 +62,6 @@ class DemoSeeder extends Seeder
                     [
                         'grade' => $grade,
                         'homeroom_teacher' => "Homeroom Teacher {$grade}{$letter}",
-                        'english_teacher' => "English Teacher {$grade}",
                     ],
                 );
             }
@@ -70,8 +69,8 @@ class DemoSeeder extends Seeder
 
         $classes = $term->classrooms()->get()->keyBy('name');
 
-        foreach (self::STUDENTS as [$nis, $name, $class, $scores, $natgeo]) {
-            $student = Student::query()->firstOrCreate(['nis' => $nis], ['name' => $name, 'is_active' => true]);
+        foreach (self::STUDENTS as [$nipd, $name, $class, $scores, $natgeo]) {
+            $student = Student::query()->firstOrCreate(['nipd' => $nipd], ['nisn' => '01'.str_pad($nipd, 8, '0', STR_PAD_LEFT), 'name' => $name, 'is_active' => true]);
             $enrollment = Enrollment::query()->where(['term_id' => $term->id, 'student_id' => $student->id])->first()
                 ?? $enrollments->assign($student, $classes[$class], log: false);
 

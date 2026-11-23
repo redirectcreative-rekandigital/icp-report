@@ -149,8 +149,6 @@ class PeriodController extends Controller
             'name' => $c->name,
             'homeroom_teacher' => $c->homeroom_teacher,
             'homeroom_id_number' => $c->homeroom_id_number,
-            'english_teacher' => $c->english_teacher,
-            'english_id_number' => $c->english_id_number,
             'status' => $c->status,
         ];
     }

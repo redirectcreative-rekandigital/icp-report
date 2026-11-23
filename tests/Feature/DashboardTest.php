@@ -71,7 +71,7 @@ it('shows only final classes when asked, including un-finalised ones as "sedang 
 it('updates the recap immediately after an autosave (cache cleared)', function () {
     $this->get('/')->assertInertia(fn (Assert $p) => $p->where('kpis.assessed', 20));
 
-    $wulan = Enrollment::whereHas('student', fn ($q) => $q->where('nis', '5006'))->first();
+    $wulan = Enrollment::whereHas('student', fn ($q) => $q->where('nipd', '5006'))->first();
     $class = $wulan->classroom;
     $v = 0;
     foreach (['listening' => 15, 'reading' => 15, 'writing' => 15, 'speaking' => 15] as $field => $value) {
@@ -85,14 +85,14 @@ it('compares two periods by level share, same students or all', function () {
     // Previous period with final results for a few of the same students.
     [$prev] = app(TermService::class)->createTerm(AcademicYear::create(['name' => '2025/2026']), 2, null);
     $old = Classroom::create(['term_id' => $prev->id, 'grade' => 4, 'name' => '4A']);
-    foreach (['5001' => [10, 10, 10, 10], '5002' => [16, 16, 16, 16]] as $nis => $s) {
-        $e = Enrollment::create(['classroom_id' => $old->id, 'student_id' => Student::where('nis', $nis)->value('id'), 'term_id' => $prev->id]);
+    foreach (['5001' => [10, 10, 10, 10], '5002' => [16, 16, 16, 16]] as $nipd => $s) {
+        $e = Enrollment::create(['classroom_id' => $old->id, 'student_id' => Student::where('nipd', $nipd)->value('id'), 'term_id' => $prev->id]);
         Score::create(['enrollment_id' => $e->id] + array_combine(['listening', 'reading', 'writing', 'speaking'], $s));
     }
     app(FinalizationService::class)->finalize($old);
 
     $c5a = Classroom::where(['term_id' => $this->term->id, 'name' => '5A'])->first();
-    Enrollment::where('classroom_id', $c5a->id)->whereHas('student', fn ($q) => $q->whereIn('nis', ['5006', '5007']))->get()
+    Enrollment::where('classroom_id', $c5a->id)->whereHas('student', fn ($q) => $q->whereIn('nipd', ['5006', '5007']))->get()
         ->each(fn ($e) => Score::create(['enrollment_id' => $e->id, 'listening' => 12, 'reading' => 12, 'writing' => 12, 'speaking' => 12]));
     app(FinalizationService::class)->finalize($c5a);
 
@@ -114,13 +114,13 @@ it('compares two periods by level share, same students or all', function () {
 it('shows a student history with level changes, narrative, PDF links and the latest level in the list', function () {
     [$prev] = app(TermService::class)->createTerm(AcademicYear::create(['name' => '2025/2026']), 2, null);
     $old = Classroom::create(['term_id' => $prev->id, 'grade' => 4, 'name' => '4A']);
-    $kevin = Student::where('nis', '5001')->first();
+    $kevin = Student::where('nipd', '5001')->first();
     $e = Enrollment::create(['classroom_id' => $old->id, 'student_id' => $kevin->id, 'term_id' => $prev->id]);
     Score::create(['enrollment_id' => $e->id, 'listening' => 12, 'reading' => 13, 'writing' => 10, 'speaking' => 12]); // total 47 → Beginner
     app(FinalizationService::class)->finalize($old);
 
     $c5a = Classroom::where(['term_id' => $this->term->id, 'name' => '5A'])->first();
-    Enrollment::where('classroom_id', $c5a->id)->whereHas('student', fn ($q) => $q->whereIn('nis', ['5006', '5007']))->get()
+    Enrollment::where('classroom_id', $c5a->id)->whereHas('student', fn ($q) => $q->whereIn('nipd', ['5006', '5007']))->get()
         ->each(fn ($e) => Score::create(['enrollment_id' => $e->id, 'listening' => 12, 'reading' => 12, 'writing' => 12, 'speaking' => 12]));
     app(FinalizationService::class)->finalize($c5a);
 
@@ -138,7 +138,7 @@ it('shows a student history with level changes, narrative, PDF links and the lat
 });
 
 it('shows draft points in the history as "draft"', function () {
-    $kevin = Student::where('nis', '5001')->first();
+    $kevin = Student::where('nipd', '5001')->first();
 
     $this->get("/siswa/{$kevin->id}")->assertInertia(fn (Assert $p) => $p
         ->has('points', 1)

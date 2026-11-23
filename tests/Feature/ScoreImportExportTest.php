@@ -40,16 +40,16 @@ function readXlsx(string $content): Spreadsheet
     return IOFactory::load($path);
 }
 
-function scoreOf(string $nis): ?Score
+function scoreOf(string $nipd): ?Score
 {
-    return Enrollment::whereHas('student', fn ($q) => $q->where('nis', $nis))->first()?->score()->first();
+    return Enrollment::whereHas('student', fn ($q) => $q->where('nipd', $nipd))->first()?->score()->first();
 }
 
 it('downloads a score template listing the class students with validation', function () {
     $res = $this->get("/impor/template/nilai/{$this->c5a->id}")->assertOk()->assertDownload('template_nilai_5A.xlsx');
     $sheet = readXlsx($res->streamedContent())->getActiveSheet();
 
-    expect($sheet->getCell('B3')->getValue())->toBe('NIS*')
+    expect($sheet->getCell('B3')->getValue())->toBe('NIPD*')
         ->and($sheet->getCell('B4')->getValue())->toBe('5001')
         ->and($sheet->getCell('D4')->getValue())->toEqual(15)
         ->and($sheet->getCell('D4')->getDataValidation()->getFormula1())->toBe('5')
@@ -63,7 +63,7 @@ it('imports the National Geographic level for grade 6 only', function () {
     expect($sheet->getCell('I3')->getValue())->toBe('NatGeo')
         ->and($sheet->getCell('I4')->getValue())->toBe('A2');
 
-    $rows = [['NIS', 'NatGeo'], ['6001', 'b1'], ['6002', 'C1']];
+    $rows = [['NIPD', 'NatGeo'], ['6001', 'b1'], ['6002', 'C1']];
     $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload($rows), 'classroom_id' => $c6a->id, 'overwrite' => true]);
     $this->get('/impor')->assertInertia(fn (Assert $p) => $p
         ->where('preview.rows.0.changes', ['NatGeo "A2" → "B1"'])
@@ -71,7 +71,7 @@ it('imports the National Geographic level for grade 6 only', function () {
     $this->post('/impor/simpan')->assertSessionHas('success');
     expect(scoreOf('6001')->natgeo_level)->toBe('B1');
 
-    $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload([['NIS', 'NatGeo'], ['5001', 'A2']]), 'classroom_id' => $this->c5a->id]);
+    $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload([['NIPD', 'NatGeo'], ['5001', 'A2']]), 'classroom_id' => $this->c5a->id]);
     $this->get('/impor')->assertInertia(fn (Assert $p) => $p
         ->where('preview.rows.0.messages.0', 'Kolom NatGeo diabaikan (hanya untuk Kelas 6).'));
 });
@@ -79,7 +79,7 @@ it('imports the National Geographic level for grade 6 only', function () {
 it('imports new scores, keeps existing ones without "Timpa", and reports errors', function () {
     $rows = [
         ['TEMPLATE'], ['petunjuk'],
-        ['No', 'NIS*', 'Nama', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar'],
+        ['No', 'NIPD*', 'Nama', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar'],
         [1, '5006', 'Wulan Sari', '12,5', 14, 13, 15, 'Good job'],   // new scores
         [2, '5001', 'Kevin Wijaya', 16, '', '', '', ''],               // differs from 15 → kept (warning)
         [3, '5002', 'Laras', 'lima belas', '', '', '', ''],           // not a number
@@ -96,7 +96,7 @@ it('imports new scores, keeps existing ones without "Timpa", and reports errors'
         ->where('preview.rows.1.status', 'warning')
         ->where('preview.rows.2.messages.0', "Baris 6: Listening 'lima belas' bukan angka.")
         ->where('preview.rows.3.messages', ['Baris 7: Listening 26 harus antara 5 dan 25.', 'Baris 7: Writing 12,3 harus bulat atau kelipatan 0,5.'])
-        ->where('preview.rows.4.messages.0', 'Baris 8: NIS 6010 tidak terdaftar di kelas 5A.')
+        ->where('preview.rows.4.messages.0', 'Baris 8: NIPD 6010 tidak terdaftar di kelas 5A.')
         ->where('preview.summary.importable', 1)
         ->missing('preview.rows.0.set'));
 
@@ -108,7 +108,7 @@ it('imports new scores, keeps existing ones without "Timpa", and reports errors'
 });
 
 it('overwrites existing scores and clears with "-" only with a recent PIN', function () {
-    $rows = [['NIS', 'Nama', 'Listening', 'Reading', 'Writing', 'Speaking'], ['5001', 'Kevin Wijaya', 16, '-', '', '']];
+    $rows = [['NIPD', 'Nama', 'Listening', 'Reading', 'Writing', 'Speaking'], ['5001', 'Kevin Wijaya', 16, '-', '', '']];
 
     $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload($rows), 'classroom_id' => $this->c5a->id, 'overwrite' => true]);
     $this->get('/impor')->assertInertia(fn (Assert $p) => $p
@@ -127,7 +127,7 @@ it('refuses score imports into a final class', function () {
     $c3a = Classroom::where(['term_id' => $this->term->id, 'name' => '3A'])->first();
     app(FinalizationService::class)->finalize($c3a);
 
-    $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload([['NIS', 'Listening'], ['3001', 10]]), 'classroom_id' => $c3a->id])
+    $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload([['NIPD', 'Listening'], ['3001', 10]]), 'classroom_id' => $c3a->id])
         ->assertSessionHas('error', 'Kelas 3A sudah final. Batalkan finalisasi untuk mengimpor nilai.');
 });
 
@@ -150,17 +150,15 @@ it('imports the old Excel workbook (sheets Grade 3–6)', function () {
     $this->get('/impor')->assertInertia(fn (Assert $p) => $p
         ->where('preview.type', 'excel-lama')
         ->where('preview.summary.total', 21)        // 20 sample rows + 1 added
-        ->where('preview.summary.new', 1)
-        ->where('preview.summary.error', 1)         // 5C does not exist
+        ->where('preview.summary.new', 0)
+        ->where('preview.summary.error', 2)         // 5C does not exist + unregistered student
         ->where('preview.rows.5.sheet', 'Grade 3')
-        ->where('preview.rows.5.nis', '8888'));
+        ->where('preview.rows.5.nipd', '8888')
+        // The old file has no NISN (required): new students must come through the student import.
+        ->where('preview.rows.5.messages.0', 'Baris 11 (Grade 3): Siswa NIPD 8888 belum terdaftar. Impor data siswa (dengan NISN) lewat menu Impor → Siswa terlebih dahulu.'));
 
-    $this->post('/impor/simpan')->assertSessionHas('success', fn ($m) => str_contains($m, '1 baru'));
-
-    $new = Student::where('nis', '8888')->first();
-    expect($new->name)->toBe('Siswa Baru Excel')
-        ->and($new->enrollments()->first()->classroom->name)->toBe('3B')
-        ->and((float) $new->enrollments()->first()->score->speaking)->toBe(14.0);
+    $this->post('/impor/simpan')->assertSessionHas('success', fn ($m) => str_contains($m, '0 baru'));
+    expect(Student::where('nipd', '8888')->exists())->toBeFalse();
 });
 
 it('exports the class recap like the Excel Grade sheet, marked DRAFT', function () {

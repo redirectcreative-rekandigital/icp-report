@@ -7,7 +7,7 @@ export type NavClass = {
     status: 'draft' | 'final';
     complete: number;
     total: number;
-    englishTeacher?: string | null;
+    homeroomTeacher?: string | null;
 };
 
 export type ActiveTerm = {

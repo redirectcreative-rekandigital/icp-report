@@ -62,7 +62,7 @@ class SpreadsheetReader
         }
 
         if ($map === null) {
-            $labels = implode(', ', array_map(fn ($k) => strlen($columns[$k][0]) <= 3 ? strtoupper($columns[$k][0]) : ucfirst($columns[$k][0]), $required));
+            $labels = implode(', ', array_map(fn ($k) => in_array($columns[$k][0], ['nipd', 'nisn', 'l/p'], true) ? strtoupper($columns[$k][0]) : ucfirst($columns[$k][0]), $required));
             throw new BusinessRuleException("Kolom wajib tidak ditemukan: {$labels}. Gunakan template terbaru.", 'HEADER_MISSING');
         }
 
@@ -92,7 +92,7 @@ class SpreadsheetReader
         return trim(preg_replace('/\s+/', ' ', str_replace(['*', '(wajib)'], '', mb_strtolower($label))));
     }
 
-    /** Trimmed string; whole numbers lose the ".0" Excel adds (NIS 3001.0 → "3001"). */
+    /** Trimmed string; whole numbers lose the ".0" Excel adds (NIPD 3001.0 → "3001"). */
     private static function cell(mixed $v): string
     {
         if ($v === null) {

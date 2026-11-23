@@ -15,16 +15,16 @@ beforeEach(function () {
     [$this->term] = app(TermService::class)->createTerm(AcademicYear::create(['name' => '2026/2027']), 1, null);
 });
 
-function enroll(Classroom $c, string $nis, string $name): Enrollment
+function enroll(Classroom $c, string $nipd, string $name): Enrollment
 {
-    $s = Student::firstOrCreate(['nis' => $nis], ['name' => $name]);
+    $s = Student::firstOrCreate(['nipd' => $nipd], ['nisn' => '0000'.$nipd, 'name' => $name]);
 
     return Enrollment::create(['classroom_id' => $c->id, 'student_id' => $s->id, 'term_id' => $c->term_id]);
 }
 
 it('creates a class with a unique name per period', function () {
     $this->post("/periode/{$this->term->id}/kelas", [
-        'grade' => 5, 'name' => '5a', 'homeroom_teacher' => 'Bu Rina', 'homeroom_id_number' => '123', 'english_teacher' => 'Ms. Sarah',
+        'grade' => 5, 'name' => '5a', 'homeroom_teacher' => 'Bu Rina', 'homeroom_id_number' => '123',
     ])->assertSessionHasNoErrors();
 
     $class = Classroom::first();
@@ -53,8 +53,8 @@ it('locks the grade once the class has scores', function () {
     $this->put("/data-kelas/{$class->id}", ['grade' => 6, 'name' => '5A'])->assertSessionHas('error');
     expect($class->fresh()->grade)->toBe(5);
 
-    $this->put("/data-kelas/{$class->id}", ['grade' => 5, 'name' => '5A', 'english_teacher' => 'Ms. Sarah'])->assertSessionHas('success');
-    expect($class->fresh()->english_teacher)->toBe('Ms. Sarah');
+    $this->put("/data-kelas/{$class->id}", ['grade' => 5, 'name' => '5A', 'homeroom_teacher' => 'Bu Rina'])->assertSessionHas('success');
+    expect($class->fresh()->homeroom_teacher)->toBe('Bu Rina');
 });
 
 it('deletes a class only with a recent PIN and without scores', function () {
@@ -90,7 +90,7 @@ it('copies classes with promotion and students into a new year', function () {
     $new = Classroom::where('term_id', $next->id)->first();
     expect($new->name)->toBe('4A')
         ->and($new->homeroom_teacher)->toBe('Bu Rina')
-        ->and($new->enrollments()->with('student')->get()->pluck('student.nis')->all())->toBe(['3001']);
+        ->and($new->enrollments()->with('student')->get()->pluck('student.nipd')->all())->toBe(['3001']);
 
     // Second copy: the class already exists → skipped.
     $plan = app(ClassroomService::class)->copyPlan($next, $this->term, [$c3->id], true, false);

@@ -18,7 +18,7 @@ beforeEach(function () {
     $this->class = Classroom::create(['term_id' => $this->term->id, 'grade' => 5, 'name' => '5A']);
     $this->kevin = Enrollment::create([
         'classroom_id' => $this->class->id,
-        'student_id' => Student::create(['nis' => '5001', 'name' => 'Kevin Wijaya'])->id,
+        'student_id' => Student::create(['nipd' => '5001', 'nisn' => '000005001', 'name' => 'Kevin Wijaya'])->id,
         'term_id' => $this->term->id,
         'roll_no' => 1,
     ]);
@@ -123,7 +123,7 @@ it('saves the National Geographic level in grade 6 only', function () {
         ->assertJsonPath('errors.value.0', 'Level National Geographic hanya untuk Kelas 6.');
 
     $g6 = Classroom::create(['term_id' => $this->term->id, 'grade' => 6, 'name' => '6A']);
-    $e = Enrollment::create(['classroom_id' => $g6->id, 'student_id' => Student::create(['nis' => '6001', 'name' => 'Putri'])->id, 'term_id' => $this->term->id]);
+    $e = Enrollment::create(['classroom_id' => $g6->id, 'student_id' => Student::create(['nipd' => '6001', 'nisn' => '000006001', 'name' => 'Putri'])->id, 'term_id' => $this->term->id]);
     $url = "/kelas/{$g6->id}/skor/{$e->id}";
 
     $this->get("/kelas/{$g6->id}/nilai")->assertInertia(fn (Assert $p) => $p

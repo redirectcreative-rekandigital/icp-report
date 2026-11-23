@@ -16,15 +16,13 @@ use Inertia\Response;
 class SchoolSettingsController extends Controller
 {
     public const FIELDS = [
-        'school_name', 'school_address', 'program_name', 'partner_name', 'city',
+        'school_name', 'program_name', 'city',
         'principal_name', 'principal_id_label', 'principal_id_number', 'show_documents_menu',
     ];
 
-    /** Logo slot → settings key. */
+    /** Logo slot → settings key. The National Geographic logo is bundled with the app. */
     public const LOGO_SLOTS = [
         'school' => 'school_logo_path',
-        'second' => 'second_logo_path',
-        'partner' => 'partner_logo_path',
     ];
 
     public function __construct(private Settings $settings, private ActivityLogger $logger) {}
@@ -46,19 +44,12 @@ class SchoolSettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'school_name' => ['required', 'string', 'max:100'],
-            'school_address' => ['nullable', 'string', 'max:200'],
             'program_name' => ['required', 'string', 'max:100'],
-            'partner_name' => ['nullable', 'string', 'max:100'],
-            'city' => ['nullable', 'string', 'max:60'],
-            'principal_name' => ['nullable', 'string', 'max:100'],
-            'principal_id_label' => ['required', Rule::in(['NBM', 'NIP', 'none'])],
-            'principal_id_number' => ['nullable', 'string', 'max:30'],
+            ...self::identityRules(),
             'show_documents_menu' => ['boolean'],
         ], [
-            'school_name.required' => 'Nama sekolah wajib diisi.',
             'program_name.required' => 'Nama program wajib diisi.',
-            '*.max' => 'Teks terlalu panjang (maksimal :max karakter).',
+            ...self::IDENTITY_MESSAGES,
         ]);
 
         $data = array_map(fn ($v) => is_string($v) ? trim($v) : $v, $data);
@@ -103,26 +94,28 @@ class SchoolSettingsController extends Controller
         return back()->with('success', self::label($slot).' tersimpan.');
     }
 
-    public function deleteLogo(string $slot): RedirectResponse
-    {
-        abort_unless(isset(self::LOGO_SLOTS[$slot]), 404);
-
-        $key = self::LOGO_SLOTS[$slot];
-        if ($old = $this->settings->get($key)) {
-            Storage::disk('local')->delete($old);
-        }
-        $this->settings->set([$key => null]);
-        $this->logger->log('settings.logo_deleted', 'pengaturan', 'Logo dihapus: '.self::label($slot).'.');
-
-        return back()->with('success', self::label($slot).' dihapus.');
-    }
-
     public static function label(string $slot): string
     {
-        return match ($slot) {
-            'school' => 'Logo sekolah',
-            'second' => 'Logo Muhammadiyah',
-            'partner' => 'Logo mitra',
-        };
+        return 'Logo sekolah';
     }
+
+    /** School identity required on the report (shared with the setup wizard). */
+    public static function identityRules(): array
+    {
+        return [
+            'school_name' => ['required', 'string', 'max:100'],
+            'city' => ['required', 'string', 'max:60'],
+            'principal_name' => ['required', 'string', 'max:100'],
+            'principal_id_label' => ['required', Rule::in(['NBM', 'NIP'])],
+            'principal_id_number' => ['required', 'string', 'max:30'],
+        ];
+    }
+
+    public const IDENTITY_MESSAGES = [
+        'school_name.required' => 'Nama sekolah wajib diisi.',
+        'city.required' => 'Tempat wajib diisi (mis. Wonorejo).',
+        'principal_name.required' => 'Nama kepala sekolah wajib diisi.',
+        'principal_id_number.required' => 'NBM/NIP kepala sekolah wajib diisi.',
+        '*.max' => 'Teks terlalu panjang (maksimal :max karakter).',
+    ];
 }

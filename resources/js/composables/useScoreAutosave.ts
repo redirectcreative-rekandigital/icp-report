@@ -17,7 +17,7 @@ export type ScoreRow = {
     enrollment_id: number;
     roll_no: number;
     student_id: number;
-    nis: string;
+    nipd: string;
     name: string;
     is_active: boolean;
     scores: Record<Skill, number | null>;

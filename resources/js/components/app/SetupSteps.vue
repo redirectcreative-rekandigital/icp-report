@@ -2,9 +2,9 @@
 import { Check } from 'lucide-vue-next';
 import { cn } from '@/lib/utils';
 
-defineProps<{ current: 1 | 2 | 3 }>();
+defineProps<{ current: 1 | 2 | 3 | 4 }>();
 
-const steps = ['Identitas sekolah', 'Buat PIN', 'Kode pemulihan'];
+const steps = ['Sekolah', 'Periode & penilaian', 'Buat PIN', 'Kode pemulihan'];
 </script>
 
 <template>

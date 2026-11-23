@@ -177,25 +177,18 @@ class FinalizationService
             'band_comments' => ScoreService::overallComments(),
             'school' => [
                 'name' => $s->get('school_name'),
-                'address' => $s->get('school_address'),
-                'program' => $s->get('program_name'),
-                'partner' => $s->get('partner_name'),
                 'city' => $s->get('city'),
                 'principal_name' => $s->get('principal_name'),
                 'principal_id_label' => $s->get('principal_id_label'),
                 'principal_id_number' => $s->get('principal_id_number'),
                 // Copies, so replacing a logo later does not change final reports (PRD-05 §5.7).
                 'school_logo_path' => $this->freezeFile($s->get('school_logo_path')),
-                'second_logo_path' => $this->freezeFile($s->get('second_logo_path')),
-                'partner_logo_path' => $this->freezeFile($s->get('partner_logo_path')),
             ],
             'classroom' => [
                 'name' => $classroom->name,
                 'grade' => $classroom->grade,
                 'homeroom_teacher' => $classroom->homeroom_teacher,
                 'homeroom_id_number' => $classroom->homeroom_id_number,
-                'english_teacher' => $classroom->english_teacher,
-                'english_id_number' => $classroom->english_id_number,
             ],
             'term' => [
                 'year' => $classroom->term->academicYear->name,

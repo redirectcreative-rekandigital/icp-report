@@ -49,7 +49,7 @@ class ScoreService
                 'enrollment_id' => $e->id,
                 'roll_no' => $e->roll_no,
                 'student_id' => $e->student_id,
-                'nis' => $e->student->nis,
+                'nipd' => $e->student->nipd,
                 'name' => $e->student->name,
                 'is_active' => $e->student->is_active,
                 ...$this->scorePayload($e->score),

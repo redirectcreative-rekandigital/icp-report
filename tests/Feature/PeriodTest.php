@@ -71,7 +71,7 @@ it('deletes a period only without scores and with a recent PIN', function () {
     $this->post("/periode/tahun/{$year->id}/semester", ['semester' => 2]);
     $s2 = Term::where('semester', 2)->first();
     $class = Classroom::create(['term_id' => $s2->id, 'grade' => 3, 'name' => '3A']);
-    $student = Student::create(['nis' => '3001', 'name' => 'Aditya Pratama']);
+    $student = Student::create(['nipd' => '3001', 'nisn' => '000003001', 'name' => 'Aditya Pratama']);
     $enrollment = Enrollment::create(['classroom_id' => $class->id, 'student_id' => $student->id, 'term_id' => $s2->id]);
     Score::create(['enrollment_id' => $enrollment->id, 'listening' => 15]);
 

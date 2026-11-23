@@ -130,8 +130,6 @@ class TermClassroomController extends Controller
             ],
             'homeroom_teacher' => ['nullable', 'string', 'max:100'],
             'homeroom_id_number' => ['nullable', 'string', 'max:30'],
-            'english_teacher' => ['nullable', 'string', 'max:100'],
-            'english_id_number' => ['nullable', 'string', 'max:30'],
         ], [
             'grade.required' => 'Pilih jenjang kelas (3–6).',
             'name.required' => 'Nama kelas wajib diisi.',

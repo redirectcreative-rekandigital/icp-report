@@ -37,7 +37,8 @@ import { cn } from '@/lib/utils';
 const props = defineProps<{
     student: {
         id: number;
-        nis: string;
+        nipd: string;
+        nisn: string;
         name: string;
         gender: 'L' | 'P' | null;
         is_active: boolean;
@@ -67,7 +68,8 @@ const chartMode = ref<'overall' | 'skills'>('overall');
 
 const formOpen = ref(false);
 const form = useForm({
-    nis: '',
+    nipd: '',
+    nisn: '',
     name: '',
     gender: '' as '' | 'L' | 'P',
     classroom_id: '',
@@ -77,7 +79,8 @@ const form = useForm({
 function openEdit(): void {
     const s = props.student;
     form.defaults({
-        nis: s.nis,
+        nipd: s.nipd,
+        nisn: s.nisn,
         name: s.name,
         gender: s.gender ?? '',
         classroom_id: s.classroom_id ? String(s.classroom_id) : '',
@@ -162,7 +165,7 @@ usePageTour(() => 'siswa-profil');
                         <TourButton tour="siswa-profil" />
                     </div>
                     <p class="text-muted-foreground">
-                        NIS {{ student.nis }} •
+                        NIPD {{ student.nipd }} • NISN {{ student.nisn }} •
                         {{
                             student.gender === 'L'
                                 ? 'Laki-laki'
@@ -223,7 +226,7 @@ usePageTour(() => 'siswa-profil');
                         : 'Overall per periode; warna titik = level.'
                 "
                 :empty="!points.length"
-                :filename="`Perkembangan_${student.nis}`"
+                :filename="`Perkembangan_${student.nipd}`"
             >
                 <div class="mb-2 flex gap-1 text-xs">
                     <button

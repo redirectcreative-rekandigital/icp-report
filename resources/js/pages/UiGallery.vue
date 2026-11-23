@@ -185,7 +185,7 @@ const now = Date.now();
                     <ClassCard
                         :id="0"
                         name="5A"
-                        english-teacher="Ms. Sarah"
+                        homeroom-teacher="Ibu Rina"
                         status="draft"
                         :complete="18"
                         :total="25"

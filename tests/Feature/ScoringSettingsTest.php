@@ -54,7 +54,7 @@ it('validates the thresholds', function (array $input, string $field) {
 
 it('previews which draft students change band', function () {
     $class = Classroom::create(['term_id' => $this->term->id, 'grade' => 4, 'name' => '4A']);
-    $e = Enrollment::create(['classroom_id' => $class->id, 'student_id' => Student::create(['nis' => '4001', 'name' => 'Budi'])->id, 'term_id' => $this->term->id]);
+    $e = Enrollment::create(['classroom_id' => $class->id, 'student_id' => Student::create(['nipd' => '4001', 'nisn' => '000004001', 'name' => 'Budi'])->id, 'term_id' => $this->term->id]);
     Score::create(['enrollment_id' => $e->id, 'listening' => 12, 'reading' => 12, 'writing' => 12, 'speaking' => 12]); // total 48 → Beginner
 
     $this->postJson("/pengaturan/penilaian/{$this->g4->id}/dampak", ['intermediate' => 12, 'advanced' => 20])

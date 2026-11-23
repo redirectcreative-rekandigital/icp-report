@@ -97,7 +97,7 @@ class HandleInertiaRequests extends Middleware
                 'status' => $c->status,
                 'complete' => $c->complete_count,
                 'total' => $c->enrollments_count,
-                'englishTeacher' => $c->english_teacher,
+                'homeroomTeacher' => $c->homeroom_teacher,
             ])
             ->all();
     }

@@ -5,7 +5,6 @@ export type ClassInfo = {
     grade: number;
     name: string;
     homeroom_teacher: string | null;
-    english_teacher: string | null;
     status: 'draft' | 'final';
     term: string;
     term_id: number;

@@ -31,13 +31,13 @@ class SpreadsheetExportService
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB(self::NAVY);
         $sheet->getStyle('A2')->getFont()->setItalic(true)->getColor()->setRGB('4B5563');
 
-        $this->header($sheet, 3, ['NIS*', 'Nama*', 'L/P', 'Kelas*']);
-        $sheet->getStyle('A4:D203')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::INPUT);
-        $sheet->getStyle('A4:A203')->getNumberFormat()->setFormatCode('@'); // keep leading zeros in NIS
-        $this->widths($sheet, [16, 40, 8, 10]);
+        $this->header($sheet, 3, ['NIPD*', 'NISN*', 'Nama*', 'L/P', 'Kelas*']);
+        $sheet->getStyle('A4:E203')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::INPUT);
+        $sheet->getStyle('A4:B203')->getNumberFormat()->setFormatCode('@'); // keep leading zeros in NIPD / NISN
+        $this->widths($sheet, [10, 14, 40, 8, 10]);
         $sheet->freezePane('A4');
 
-        $this->listValidation($sheet, 'C4:C203', '"L,P"');
+        $this->listValidation($sheet, 'D4:D203', '"L,P"');
 
         $classes = $term?->classrooms()->orderBy('grade')->orderBy('name')->pluck('name')->all() ?? [];
         if ($classes) {
@@ -46,7 +46,7 @@ class SpreadsheetExportService
             foreach ($classes as $i => $name) {
                 $list->setCellValue('A'.($i + 2), $name);
             }
-            $this->listValidation($sheet, 'D4:D203', "'Daftar Kelas'!\$A\$2:\$A\$".(count($classes) + 1));
+            $this->listValidation($sheet, 'E4:E203', "'Daftar Kelas'!\$A\$2:\$A\$".(count($classes) + 1));
         }
 
         $book->setActiveSheetIndex(0);
@@ -54,27 +54,28 @@ class SpreadsheetExportService
         return $this->download($book, 'template_siswa.xlsx');
     }
 
-    /** Daftar siswa: NIS, Nama, L/P, Kelas (for one period). */
+    /** Daftar siswa: NIPD, NISN, Nama, L/P, Kelas (for one period). */
     public function studentList(Term $term): StreamedResponse
     {
         $term->loadMissing('academicYear');
         $book = new Spreadsheet;
         $sheet = $book->getActiveSheet()->setTitle('Daftar Siswa');
 
-        $this->header($sheet, 1, ['No', 'NIS', 'Nama', 'L/P', 'Kelas', 'Status']);
+        $this->header($sheet, 1, ['No', 'NIPD', 'NISN', 'Nama', 'L/P', 'Kelas', 'Status']);
 
         $rows = Enrollment::query()
             ->where('enrollments.term_id', $term->id)
             ->join('classrooms', 'classrooms.id', '=', 'enrollments.classroom_id')
             ->join('students', 'students.id', '=', 'enrollments.student_id')
             ->orderBy('classrooms.grade')->orderBy('classrooms.name')->orderBy('enrollments.roll_no')
-            ->get(['students.nis', 'students.name', 'students.gender', 'students.is_active', 'classrooms.name as class_name']);
+            ->get(['students.nipd', 'students.nisn', 'students.name', 'students.gender', 'students.is_active', 'classrooms.name as class_name']);
 
         $r = 2;
         foreach ($rows as $i => $row) {
-            $sheet->setCellValueExplicit("B{$r}", $row->nis, 's');
+            $sheet->setCellValueExplicit("B{$r}", $row->nipd, 's');
+            $sheet->setCellValueExplicit("C{$r}", (string) $row->nisn, 's');
             $sheet->fromArray([$i + 1], null, "A{$r}");
-            $sheet->fromArray([$row->name, $row->gender, $row->class_name, $row->is_active ? 'Aktif' : 'Nonaktif'], null, "C{$r}");
+            $sheet->fromArray([$row->name, $row->gender, $row->class_name, $row->is_active ? 'Aktif' : 'Nonaktif'], null, "D{$r}");
             $r++;
         }
 
@@ -84,14 +85,15 @@ class SpreadsheetExportService
             ->orderBy('name')->get();
         foreach ($unassigned as $s) {
             $sheet->fromArray([$r - 1], null, "A{$r}");
-            $sheet->setCellValueExplicit("B{$r}", $s->nis, 's');
-            $sheet->fromArray([$s->name, $s->gender, '–', $s->is_active ? 'Aktif' : 'Nonaktif'], null, "C{$r}");
+            $sheet->setCellValueExplicit("B{$r}", $s->nipd, 's');
+            $sheet->setCellValueExplicit("C{$r}", (string) $s->nisn, 's');
+            $sheet->fromArray([$s->name, $s->gender, '–', $s->is_active ? 'Aktif' : 'Nonaktif'], null, "D{$r}");
             $r++;
         }
 
-        $this->widths($sheet, [6, 16, 40, 6, 10, 12]);
+        $this->widths($sheet, [6, 10, 14, 40, 6, 10, 12]);
         $sheet->freezePane('A2');
-        $sheet->setAutoFilter('A1:F'.max(1, $r - 1));
+        $sheet->setAutoFilter('A1:G'.max(1, $r - 1));
 
         return $this->download($book, 'Daftar_Siswa_'.$term->fileSlug().'.xlsx');
     }
@@ -101,7 +103,7 @@ class SpreadsheetExportService
     {
         $book = new Spreadsheet;
         $sheet = $book->getActiveSheet()->setTitle('Laporan Galat');
-        $this->header($sheet, 1, ['Baris', 'Status', 'NIS', 'Nama', 'Kelas', 'Keterangan']);
+        $this->header($sheet, 1, ['Baris', 'Status', 'NIPD', 'Nama', 'Kelas', 'Keterangan']);
 
         $labels = ['error' => 'Galat', 'warning' => 'Peringatan'];
         $r = 2;
@@ -110,7 +112,7 @@ class SpreadsheetExportService
                 continue;
             }
             $sheet->fromArray([$row['line'], $labels[$row['status']]], null, "A{$r}");
-            $sheet->setCellValueExplicit("C{$r}", (string) $row['nis'], 's');
+            $sheet->setCellValueExplicit("C{$r}", (string) $row['nipd'], 's');
             $sheet->fromArray([$row['file_name'] ?? $row['name'], $row['class'], implode("\n", $row['messages'])], null, "D{$r}");
             $sheet->getStyle("F{$r}")->getAlignment()->setWrapText(true);
             $color = $row['status'] === 'error' ? 'FDECEA' : 'FFF4E5';

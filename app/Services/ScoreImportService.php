@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class ScoreImportService
 {
     public const COLUMNS = [
-        'nis' => ['nis', 'no induk', 'student id', 'student id (nis)'],
+        'nipd' => ['nipd', 'no induk', 'student id', 'student id (nipd)'],
         'name' => ['nama', 'nama siswa', 'student name', 'name'],
         'listening' => ['listening'],
         'reading' => ['reading'],
@@ -26,7 +26,7 @@ class ScoreImportService
 
     public function read(string $path, string $extension): array
     {
-        return SpreadsheetReader::read($path, $extension, self::COLUMNS, ['nis'])['rows'];
+        return SpreadsheetReader::read($path, $extension, self::COLUMNS, ['nipd'])['rows'];
     }
 
     /** @return array{rows: list<array<string, mixed>>, summary: array<string, int>} */
@@ -36,26 +36,26 @@ class ScoreImportService
             throw new BusinessRuleException("Kelas {$classroom->name} sudah final. Batalkan finalisasi untuk mengimpor nilai.", 'CLASS_FINAL', 423);
         }
 
-        $enrollments = $classroom->enrollments()->with(['student', 'score'])->get()->keyBy(fn ($e) => $e->student->nis);
+        $enrollments = $classroom->enrollments()->with(['student', 'score'])->get()->keyBy(fn ($e) => $e->student->nipd);
         $seen = [];
         $rows = [];
 
         foreach ($raw as $line => $r) {
             $where = "Baris {$line}";
-            $nis = $r['nis'];
+            $nipd = $r['nipd'];
             $errors = [];
             $warnings = [];
             $diff = null;
             $e = null;
 
-            if ($nis === '') {
-                $errors[] = "{$where}: NIS wajib diisi.";
-            } elseif (isset($seen[$nis])) {
-                $errors[] = "{$where}: NIS {$nis} muncul lebih dari sekali (baris {$seen[$nis]} dan {$line}).";
-            } elseif (! ($e = $enrollments->get($nis))) {
-                $errors[] = "{$where}: NIS {$nis} tidak terdaftar di kelas {$classroom->name}.";
+            if ($nipd === '') {
+                $errors[] = "{$where}: NIPD wajib diisi.";
+            } elseif (isset($seen[$nipd])) {
+                $errors[] = "{$where}: NIPD {$nipd} muncul lebih dari sekali (baris {$seen[$nipd]} dan {$line}).";
+            } elseif (! ($e = $enrollments->get($nipd))) {
+                $errors[] = "{$where}: NIPD {$nipd} tidak terdaftar di kelas {$classroom->name}.";
             }
-            $seen[$nis] ??= $line;
+            $seen[$nipd] ??= $line;
 
             if ($e) {
                 if (($r['name'] ?? '') !== '' && mb_strtolower(trim($r['name'])) !== mb_strtolower($e->student->name)) {
@@ -76,7 +76,7 @@ class ScoreImportService
 
             $rows[] = [
                 'line' => $line,
-                'nis' => $nis,
+                'nipd' => $nipd,
                 'name' => $e?->student->name ?? ($r['name'] ?? ''),
                 'file_name' => $r['name'] ?? '',
                 'class' => $classroom->name,

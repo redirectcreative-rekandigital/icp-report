@@ -54,7 +54,7 @@ function finish(): void {
 <template>
     <Head :title="heading" />
     <GuestLayout wide>
-        <SetupSteps v-if="context === 'setup'" :current="3" class="mb-6" />
+        <SetupSteps v-if="context === 'setup'" :current="4" class="mb-6" />
 
         <div class="mb-4 flex items-start gap-3">
             <div

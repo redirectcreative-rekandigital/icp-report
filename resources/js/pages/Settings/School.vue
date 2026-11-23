@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { useEventListener } from '@vueuse/core';
-import { ImageUp, Trash2 } from 'lucide-vue-next';
+import { ImageUp } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { toast } from 'vue-sonner';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,30 +17,25 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import SettingsLayout from '@/layouts/SettingsLayout.vue';
 
 type Values = {
     school_name: string;
-    school_address: string;
     program_name: string;
-    partner_name: string;
     city: string;
     principal_name: string;
-    principal_id_label: 'NBM' | 'NIP' | 'none';
+    principal_id_label: 'NBM' | 'NIP';
     principal_id_number: string;
     show_documents_menu: boolean;
 };
 
 const props = defineProps<{
     values: Values;
-    logos: Record<'school' | 'second' | 'partner', string | null>;
+    logos: Record<'school', string | null>;
 }>();
 
 const form = useForm<Values>({
     ...props.values,
-    school_address: props.values.school_address ?? '',
-    partner_name: props.values.partner_name ?? '',
     city: props.values.city ?? '',
     principal_name: props.values.principal_name ?? '',
     principal_id_number: props.values.principal_id_number ?? '',
@@ -71,17 +65,7 @@ const logoSlots = [
     {
         slot: 'school',
         title: 'Logo sekolah',
-        hint: 'Tampil di kiri kop rapor dan di layar PIN.',
-    },
-    {
-        slot: 'second',
-        title: 'Logo Muhammadiyah',
-        hint: 'Opsional. Tampil di kanan kop bila diaktifkan di Pengaturan → Rapor.',
-    },
-    {
-        slot: 'partner',
-        title: 'Logo mitra ICP',
-        hint: 'Opsional. Tampil di baris program.',
+        hint: 'Wajib. Tampil di kiri kop rapor dan di layar PIN. Logo National Geographic Learning (kanan kop) sudah tersedia.',
     },
 ] as const;
 
@@ -125,13 +109,6 @@ function pickLogo(slot: string, e: Event): void {
         },
     );
 }
-
-function removeLogo(slot: string): void {
-    router.delete(`/pengaturan/sekolah/logo/${slot}`, {
-        preserveScroll: true,
-        onError: () => toast.error('Logo gagal dihapus.'),
-    });
-}
 </script>
 
 <template>
@@ -161,17 +138,6 @@ function removeLogo(slot: string): void {
                             />
                             <InputError :message="form.errors.school_name" />
                         </div>
-                        <div class="grid gap-1.5">
-                            <Label for="school_address">Alamat</Label>
-                            <Textarea
-                                id="school_address"
-                                v-model="form.school_address"
-                                rows="2"
-                                maxlength="200"
-                                :aria-invalid="!!form.errors.school_address"
-                            />
-                            <InputError :message="form.errors.school_address" />
-                        </div>
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div class="grid gap-1.5">
                                 <Label for="program_name"
@@ -191,27 +157,25 @@ function removeLogo(slot: string): void {
                                 />
                             </div>
                             <div class="grid gap-1.5">
-                                <Label for="partner_name">Nama mitra</Label>
+                                <Label for="city"
+                                    >Tempat
+                                    <span class="text-destructive"
+                                        >*</span
+                                    ></Label
+                                >
                                 <Input
-                                    id="partner_name"
-                                    v-model="form.partner_name"
-                                    maxlength="100"
+                                    id="city"
+                                    v-model="form.city"
+                                    maxlength="60"
+                                    :aria-invalid="!!form.errors.city"
                                 />
-                                <InputError
-                                    :message="form.errors.partner_name"
-                                />
+                                <p class="text-xs text-muted-foreground">
+                                    Ditulis sebelum tanggal rapor, mis. "{{
+                                        form.city || 'Wonorejo'
+                                    }}, 18 December 2026".
+                                </p>
+                                <InputError :message="form.errors.city" />
                             </div>
-                        </div>
-                        <div class="grid gap-1.5 sm:max-w-xs">
-                            <Label for="city"
-                                >Kota (untuk tanda tangan rapor)</Label
-                            >
-                            <Input
-                                id="city"
-                                v-model="form.city"
-                                maxlength="60"
-                            />
-                            <InputError :message="form.errors.city" />
                         </div>
                     </CardContent>
                 </Card>
@@ -227,13 +191,15 @@ function removeLogo(slot: string): void {
                     <CardContent class="grid gap-4">
                         <div class="grid gap-1.5">
                             <Label for="principal_name"
-                                >Nama kepala sekolah</Label
+                                >Nama kepala sekolah
+                                <span class="text-destructive">*</span></Label
                             >
                             <Input
                                 id="principal_name"
                                 v-model="form.principal_name"
                                 maxlength="100"
                                 placeholder="mis. Nama Lengkap, S.Pd., M.Pd."
+                                :aria-invalid="!!form.errors.principal_name"
                             />
                             <InputError :message="form.errors.principal_name" />
                         </div>
@@ -247,7 +213,6 @@ function removeLogo(slot: string): void {
                                     v-for="opt in [
                                         { v: 'NBM', l: 'NBM' },
                                         { v: 'NIP', l: 'NIP' },
-                                        { v: 'none', l: 'Tidak ditampilkan' },
                                     ]"
                                     :key="opt.v"
                                     class="flex cursor-pointer items-center gap-2 text-sm"
@@ -257,19 +222,19 @@ function removeLogo(slot: string): void {
                                 </label>
                             </RadioGroup>
                         </div>
-                        <div
-                            v-if="form.principal_id_label !== 'none'"
-                            class="grid gap-1.5 sm:max-w-xs"
-                        >
+                        <div class="grid gap-1.5 sm:max-w-xs">
                             <Label for="principal_id_number"
-                                >{{ form.principal_id_label }} kepala
-                                sekolah</Label
+                                >{{ form.principal_id_label }} kepala sekolah
+                                <span class="text-destructive">*</span></Label
                             >
                             <Input
                                 id="principal_id_number"
                                 v-model="form.principal_id_number"
                                 maxlength="30"
                                 class="tabular-nums"
+                                :aria-invalid="
+                                    !!form.errors.principal_id_number
+                                "
                             />
                             <InputError
                                 :message="form.errors.principal_id_number"
@@ -366,15 +331,6 @@ function removeLogo(slot: string): void {
                                         class="sr-only"
                                         @change="pickLogo(l.slot, $event)"
                                     />
-                                </Button>
-                                <Button
-                                    v-if="logos[l.slot]"
-                                    size="sm"
-                                    variant="ghost"
-                                    class="text-destructive"
-                                    @click="removeLogo(l.slot)"
-                                >
-                                    <Trash2 /> Hapus
                                 </Button>
                             </div>
                             <InputError

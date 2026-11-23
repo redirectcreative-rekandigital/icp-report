@@ -22,9 +22,7 @@ it('shows the school settings with NBM as the default ID label', function () {
 it('updates the school identity and logs the change', function () {
     $this->withPinSession()->put('/pengaturan/sekolah', [
         'school_name' => 'SD Muhammadiyah Wonorejo',
-        'school_address' => 'Jl. Raya Wonorejo No. 1',
         'program_name' => 'International Class Program',
-        'partner_name' => 'Partner English Academy',
         'city' => 'Sidoarjo',
         'principal_name' => 'Nama Kepala Sekolah, S.Pd.',
         'principal_id_label' => 'NBM',
@@ -42,23 +40,30 @@ it('validates the school identity', function () {
     $this->withPinSession()->put('/pengaturan/sekolah', [
         'school_name' => '',
         'program_name' => 'ICP',
-        'principal_id_label' => 'KTP',
-    ])->assertSessionHasErrors(['school_name', 'principal_id_label']);
+        'city' => '',
+        'principal_name' => '',
+        'principal_id_label' => 'none', // the report always shows NBM or NIP
+        'principal_id_number' => '',
+    ])->assertSessionHasErrors(['school_name', 'city', 'principal_name', 'principal_id_label', 'principal_id_number']);
 });
 
-it('stores logos privately and serves them through the app', function () {
+it('stores the school logo privately, replaces it, and has no other logo slots', function () {
     $this->withPinSession()
-        ->post('/pengaturan/sekolah/logo/second', ['logo' => UploadedFile::fake()->image('muhammadiyah.png', 300, 300)])
+        ->post('/pengaturan/sekolah/logo/school', ['logo' => UploadedFile::fake()->image('logo.png', 300, 300)])
         ->assertSessionHasNoErrors();
 
-    $path = $this->settings()->get('second_logo_path');
+    $path = $this->settings()->get('school_logo_path');
     Storage::disk('local')->assertExists($path);
     expect($path)->toStartWith('logos/');
+    $this->get('/media/logo/school')->assertOk();
 
-    $this->get('/media/logo/second')->assertOk();
-
-    $this->withPinSession()->delete('/pengaturan/sekolah/logo/second');
+    // Replacing removes the old file; the logo is required, so it cannot be deleted.
+    $this->withPinSession()->post('/pengaturan/sekolah/logo/school', ['logo' => UploadedFile::fake()->image('new.png', 300, 300)]);
     Storage::disk('local')->assertMissing($path);
+    $this->withPinSession()->delete('/pengaturan/sekolah/logo/school')->assertStatus(405);
+
+    // The Muhammadiyah / partner slots are gone (the National Geographic logo is bundled).
+    $this->withPinSession()->post('/pengaturan/sekolah/logo/second', ['logo' => UploadedFile::fake()->image('m.png')])->assertNotFound();
     $this->get('/media/logo/second')->assertNotFound();
 });
 
