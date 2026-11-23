@@ -117,5 +117,4 @@ return [
     // Interim (revisi 23-11-2026): band texts reuse the CEFR texts above until the school sends its own.
     'band_source' => ['Beginner' => 'A1', 'Intermediate' => 'A2', 'Advanced' => 'B1'],
 
-    'report_footnote' => "CEFR levels are indicative and based on the school's CEFR-aligned assessment of Listening, Reading, Writing and Speaking.",
 ];

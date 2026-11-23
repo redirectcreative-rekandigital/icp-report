@@ -173,6 +173,6 @@ class ReportController extends Controller
     {
         $paper = $request->query('paper', ReportLayout::normalize($this->settings->get('report_layout'))['paper_default']);
 
-        return in_array($paper, ['f4', 'a4'], true) ? $paper : 'f4';
+        return in_array($paper, ['f4', 'a4'], true) ? $paper : 'a4';
     }
 }

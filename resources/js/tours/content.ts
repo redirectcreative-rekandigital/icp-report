@@ -441,7 +441,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'rl-header',
                 title: 'Kop & logo',
-                text: 'Atur kop rapor, termasuk logo Muhammadiyah.',
+                text: 'Atur baris tambahan dan judul di kop rapor. Logo National Geographic sudah tersedia otomatis.',
             },
             {
                 anchor: 'rl-signatures',

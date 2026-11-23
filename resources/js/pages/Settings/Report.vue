@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { useElementSize, watchDebounced } from '@vueuse/core';
-import { AlertTriangle, ArrowDown, ArrowUp, RotateCcw } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, RotateCcw } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import ConfirmDialog from '@/components/app/ConfirmDialog.vue';
 import NativeSelect from '@/components/app/NativeSelect.vue';
@@ -25,7 +25,7 @@ import { clone } from '@/lib/clone';
 import { http } from '@/lib/http';
 import { cn } from '@/lib/utils';
 
-type Role = 'parent' | 'homeroom' | 'english' | 'principal';
+type Role = 'parent' | 'homeroom' | 'principal';
 type Sections = Record<string, boolean>;
 type Layout = {
     preset: 'lengkap' | 'ringkas' | 'minimal' | 'kustom';
@@ -38,7 +38,6 @@ type Layout = {
     };
     header: {
         extra_line: string;
-        show_muhammadiyah_logo: boolean;
         title: string;
     };
     sections: Sections;
@@ -51,21 +50,18 @@ const props = defineProps<{
     presets: Record<'lengkap' | 'ringkas' | 'minimal', Sections>;
     themes: Record<'navy' | 'hijau', { primary: string; accent: string }>;
     roles: Record<Role, string>;
-    logos: { school: boolean; second: boolean; partner: boolean };
     sampleStudents: { id: number; label: string }[];
 }>();
 
 const form = useForm<Layout>(clone(props.layout));
 
 const SECTION_LABELS: Record<string, string> = {
-    level_map: 'Peta level CEFR (Level Map)',
+    level_map:
+        'Peta level CEFR hasil placement test National Geographic (kelas 6)',
     cambridge: 'Label setara Cambridge di peta level',
-    radar: 'Grafik radar (Skill Profile)',
-    percent_bar: 'Kolom persentase + bar di tabel skor',
+    radar: 'Grafik garis nilai skill (Skill Profile)',
     can_do: 'Blok "What the student can do & Next steps"',
     strongest_skill: 'Kalimat "Strongest skill this term" di komentar otomatis',
-    status: 'Status terhadap level harapan (Below/Meeting/Above)',
-    footnote: 'Catatan kaki penjelasan CEFR',
     parent_signature: 'Kolom tanda tangan orang tua',
 };
 
@@ -275,10 +271,12 @@ function reset(): void {
                     <CardHeader>
                         <CardTitle>Kop & identitas</CardTitle>
                         <CardDescription
-                            >Nama sekolah, alamat, dan logo diatur di
+                            >Nama dan logo sekolah diatur di
                             <Link href="/pengaturan/sekolah" class="underline"
                                 >Pengaturan → Sekolah</Link
-                            >.</CardDescription
+                            >. Logo National Geographic Learning dan baris "In
+                            Collaboration with" tampil
+                            otomatis.</CardDescription
                         >
                     </CardHeader>
                     <CardContent class="grid gap-4">
@@ -303,27 +301,6 @@ function reset(): void {
                             />
                             <InputError :message="err('header.title')" />
                         </div>
-                        <label
-                            class="flex cursor-pointer items-center justify-between gap-3 text-sm"
-                        >
-                            Tampilkan logo Muhammadiyah (kanan kop)
-                            <Switch
-                                v-model="form.header.show_muhammadiyah_logo"
-                            />
-                        </label>
-                        <p
-                            v-if="
-                                form.header.show_muhammadiyah_logo &&
-                                !logos.second
-                            "
-                            class="flex items-start gap-1.5 text-sm text-status-incomplete-fg"
-                        >
-                            <AlertTriangle class="mt-0.5 size-4 shrink-0" />
-                            Logo Muhammadiyah belum diunggah —
-                            <Link href="/pengaturan/sekolah" class="underline"
-                                >unggah di Pengaturan → Sekolah</Link
-                            >.
-                        </p>
                     </CardContent>
                 </Card>
 
@@ -331,8 +308,8 @@ function reset(): void {
                     <CardHeader>
                         <CardTitle>Warna kop</CardTitle>
                         <CardDescription
-                            >Warna level CEFR dan status tidak ikut
-                            berubah.</CardDescription
+                            >Warna level (Beginner/Intermediate/Advanced) dan
+                            peta CEFR tidak ikut berubah.</CardDescription
                         >
                     </CardHeader>
                     <CardContent class="grid gap-3">
@@ -524,10 +501,10 @@ function reset(): void {
                                 id="paper"
                                 v-model="form.paper_default"
                             >
+                                <option value="a4">A4 (210 × 297 mm)</option>
                                 <option value="f4">
                                     F4 / Folio (215 × 330 mm)
                                 </option>
-                                <option value="a4">A4 (210 × 297 mm)</option>
                             </NativeSelect>
                         </div>
                         <div class="grid gap-1.5">
@@ -592,8 +569,8 @@ function reset(): void {
                             class="w-20"
                             aria-label="Kertas pratinjau"
                         >
-                            <option value="f4">F4</option>
                             <option value="a4">A4</option>
+                            <option value="f4">F4</option>
                         </NativeSelect>
                     </div>
                 </div>

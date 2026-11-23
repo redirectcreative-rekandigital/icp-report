@@ -30,11 +30,6 @@ class ReportSettingsController extends Controller
             'presets' => ReportLayout::PRESETS,
             'themes' => ReportLayout::THEMES,
             'roles' => ReportLayout::ROLES,
-            'logos' => [
-                'school' => (bool) $this->settings->get('school_logo_path'),
-                'second' => (bool) $this->settings->get('second_logo_path'),
-                'partner' => (bool) $this->settings->get('partner_logo_path'),
-            ],
             'sampleStudents' => $this->sampleStudents(),
         ]);
     }
@@ -60,7 +55,7 @@ class ReportSettingsController extends Controller
     public function preview(Request $request, ReportDataBuilder $builder, PdfReportService $pdf): JsonResponse
     {
         $layout = $this->validated($request);
-        $paper = $request->input('paper') === 'a4' ? 'a4' : 'f4';
+        $paper = $request->input('paper') === 'f4' ? 'f4' : 'a4';
         $enrollment = $request->integer('enrollment_id') ? Enrollment::query()->find($request->integer('enrollment_id')) : null;
 
         $data = $enrollment && ! $enrollment->classroom->isFinal()
@@ -81,7 +76,6 @@ class ReportSettingsController extends Controller
             'theme.primary' => ['required_if:theme.preset,kustom', 'nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'theme.accent' => ['required_if:theme.preset,kustom', 'nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'header.extra_line' => ['nullable', 'string', 'max:80'],
-            'header.show_muhammadiyah_logo' => ['boolean'],
             'header.title' => ['required', 'string', 'max:60'],
             'sections' => ['required', 'array'],
             'sections.*' => ['boolean'],

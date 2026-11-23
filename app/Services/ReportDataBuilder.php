@@ -35,11 +35,11 @@ class ReportDataBuilder
     public function __construct(
         private Settings $settings,
         private ScoreService $scores,
-        private RadarChartRenderer $radar,
+        private LineChartRenderer $chart,
     ) {}
 
     /** @return array<string, mixed> */
-    public function build(Enrollment $enrollment, string $paper = 'f4', bool $forPreview = false, ?array $layoutOverride = null): array
+    public function build(Enrollment $enrollment, string $paper = 'a4', bool $forPreview = false, ?array $layoutOverride = null): array
     {
         $enrollment->loadMissing(['student', 'score', 'classroom.term.academicYear']);
         $classroom = $enrollment->classroom;
@@ -69,7 +69,7 @@ class ReportDataBuilder
             'level_meta' => LevelMeta::query()->orderBy('sort')->get()->toArray(),
             'descriptors' => Descriptor::query()->get()->toArray(),
             'school' => $this->schoolNow(),
-            'classroom' => ['name' => '6A', 'grade' => 6, 'homeroom_teacher' => 'Homeroom Teacher', 'homeroom_id_number' => null, 'english_teacher' => 'English Teacher', 'english_id_number' => null],
+            'classroom' => ['name' => '6A', 'grade' => 6, 'homeroom_teacher' => 'Homeroom Teacher', 'homeroom_id_number' => null],
             'term' => ['year' => '2026/2027', 'label' => 'Semester 1', 'report_date' => now()->toDateString()],
             'layout' => $layout,
             'finalized_at' => null,
@@ -131,7 +131,7 @@ class ReportDataBuilder
             'level_meta' => LevelMeta::query()->orderBy('sort')->get()->toArray(),
             'descriptors' => Descriptor::query()->get()->toArray(),
             'school' => $this->schoolNow(),
-            'classroom' => $c->only(['name', 'grade', 'homeroom_teacher', 'homeroom_id_number', 'english_teacher', 'english_id_number']),
+            'classroom' => $c->only(['name', 'grade', 'homeroom_teacher', 'homeroom_id_number']),
             'term' => [
                 'year' => $c->term->academicYear->name,
                 'label' => $c->term->label,
@@ -149,16 +149,11 @@ class ReportDataBuilder
 
         return [
             'name' => $s->get('school_name'),
-            'address' => $s->get('school_address'),
-            'program' => $s->get('program_name'),
-            'partner' => $s->get('partner_name'),
             'city' => $s->get('city'),
             'principal_name' => $s->get('principal_name'),
             'principal_id_label' => $s->get('principal_id_label'),
             'principal_id_number' => $s->get('principal_id_number'),
             'school_logo_path' => $s->get('school_logo_path'),
-            'second_logo_path' => $s->get('second_logo_path'),
-            'partner_logo_path' => $s->get('partner_logo_path'),
         ];
     }
 
@@ -223,9 +218,9 @@ class ReportDataBuilder
         $logo = fn (?string $path) => $path && Storage::disk('local')->exists($path)
             ? 'data:'.(Storage::disk('local')->mimeType($path) ?: 'image/png').';base64,'.base64_encode(Storage::disk('local')->get($path))
             : null;
-        $second = $layout['header']['show_muhammadiyah_logo'] ? $logo($school['second_logo_path'] ?? null) : null;
-        if ($layout['header']['show_muhammadiyah_logo'] && ! $second) {
-            $warnings[] = 'Logo Muhammadiyah belum diunggah (Pengaturan → Sekolah).';
+        $schoolLogo = $logo($school['school_logo_path'] ?? null);
+        if (! $schoolLogo) {
+            $warnings[] = 'Logo sekolah belum diunggah (Pengaturan → Sekolah).';
         }
 
         $idLabel = $layout['id_label'];
@@ -235,20 +230,16 @@ class ReportDataBuilder
             'name' => match ($s['role']) {
                 'parent' => null,
                 'homeroom' => $class['homeroom_teacher'] ?? null,
-                'english' => $class['english_teacher'] ?? null,
                 'principal' => $school['principal_name'] ?? null,
             },
             'id_line' => match ($s['role']) {
                 'homeroom' => $idLine($class['homeroom_id_number'] ?? null),
-                'english' => $idLine($class['english_id_number'] ?? null),
                 'principal' => $idLine($school['principal_id_number'] ?? null),
                 default => null,
             },
         ], ReportLayout::printedSignatures($layout));
 
         $reportDate = $src['term']['report_date'] ?? null;
-        $levelList = implode('  •  ', array_map(fn ($l) => "{$l['level']} {$l['short_name']}", $levels));
-        $footnote = (require database_path('seeders/data/cefr_content.php'))['report_footnote'];
 
         $name = $e->student->name;
         $commentLen = mb_strlen((string) $comment);
@@ -264,21 +255,17 @@ class ReportDataBuilder
             'theme' => $layout['theme'],
             'school' => [
                 'name' => mb_strtoupper((string) $school['name']),
-                'address' => $school['address'] ?? '',
-                'program' => mb_strtoupper((string) ($school['program'] ?? '')),
-                'partner' => $school['partner'] ?? '',
                 'extra_line' => $layout['header']['extra_line'],
             ],
             'logos' => [
-                'school' => $logo($school['school_logo_path'] ?? null),
-                'second' => $second,
-                'partner' => $logo($school['partner_logo_path'] ?? null),
+                'school' => $schoolLogo,
+                'natgeo' => 'data:image/png;base64,'.base64_encode((string) file_get_contents(resource_path('images/natgeo-learning.png'))),
             ],
             'title' => $layout['header']['title'],
-            'subtitle' => "CEFR-Aligned Assessment  •  Academic Year {$src['term']['year']}  •  {$src['term']['label']}",
+            'subtitle' => "Academic Year {$src['term']['year']}  •  {$src['term']['label']}",
             'student' => ['name' => $name, 'nis' => $e->student->nis, 'class' => $class['name'], 'grade' => $class['grade']],
             'term' => $src['term'],
-            'teachers' => ['homeroom' => $class['homeroom_teacher'] ?? '', 'english' => $class['english_teacher'] ?? ''],
+            'teachers' => ['homeroom' => $class['homeroom_teacher'] ?? ''],
             'skills' => $skills,
             'overall' => [
                 'total' => self::num($res->total),
@@ -292,9 +279,7 @@ class ReportDataBuilder
             'comment' => $comment,
             'place_date' => (($school['city'] ?? '') ? "{$school['city']}, " : '').($reportDate ? CarbonImmutable::parse($reportDate)->locale('en')->translatedFormat('j F Y') : '.............................'),
             'signatures' => $signatures,
-            'footnote' => "{$footnote}  {$levelList}",
-            // shortcut: radar fed with score/25 until stage R2 replaces it with the line chart.
-            'radar' => $sections['radar'] ? $this->radar->render(array_map(fn ($v) => $v / ScoringConfig::MAX * 100, array_values($src['raw'])), $layout['theme']['primary']) : null,
+            'chart' => $sections['radar'] ? $this->chart->render(array_values($src['raw']), array_column($skills, 'bg'), $layout['theme']['primary']) : null,
             'finalized_at' => $src['finalized_at']?->toIso8601String(),
             // Auto-shrink long texts so the page stays one page (PRD-05 §6, §8).
             'fs' => [

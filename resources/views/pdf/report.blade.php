@@ -10,10 +10,13 @@
     // F4 is ~33 mm taller: spend it on spacing. Switched-off blocks give their room back too.
     $off = (! $s['level_map']) + (! $s['radar']) + (! $s['can_do']) * 2;
     $tight = max(0, $m - 12); // wider margins leave less room: tighten spacing
-    $gap = max(1.6, ($paper === 'f4' ? 4.6 : 2) + $off * 0.9 - $tight * 0.25);
+    $gap = max(1.6, ($paper === 'f4' ? 4.6 : 3) + $off * 0.9 - $tight * 0.25);
     $sigSpace = max(8, ($paper === 'f4' ? 15 : 9) + $off * 1.5 - $tight * 0.6);
-    $k = $paper === 'f4' ? 1 : 0.94; // A4 is 33 mm shorter: slightly smaller type & padding
+    // A4 is 33 mm shorter: slightly smaller type & padding. Pagella sets narrower than the old DejaVu, so both run larger.
+    $k = $paper === 'f4' ? 1.12 : 1.04;
     $pdf = $pdf ?? true;
+    // DomPDF reads the font from disk; the browser preview loads it over HTTP.
+    $fontBase = $pdf ? str_replace('\\', '/', public_path('fonts/pagella')) : asset('fonts/pagella');
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -21,9 +24,11 @@
 <meta charset="utf-8">
 <title>{{ $r['student']['name'] }} — English Proficiency Progress Report</title>
 <style>
+    @font-face { font-family: 'Pagella'; font-weight: normal; font-style: normal; src: url('{{ $fontBase }}/TeXGyrePagella-regular.ttf') format('truetype'); }
+    @font-face { font-family: 'Pagella'; font-weight: bold; font-style: normal; src: url('{{ $fontBase }}/TeXGyrePagella-bold.ttf') format('truetype'); }
     @page { margin: {{ $m }}mm; size: {{ $pageW }}mm {{ $pageH }}mm; }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'DejaVu Sans', 'Plus Jakarta Sans', Arial, sans-serif; font-size: {{ 7.4 * $k }}pt; color: #111827; line-height: 1.25; }
+    body { margin: 0; font-family: 'Pagella', 'Book Antiqua', Palatino, serif; font-size: {{ 7.4 * $k }}pt; color: #111827; line-height: 1.25; }
     @if (! $pdf)
         html { background: #e5e7eb; }
         body { padding: 0; }
@@ -42,9 +47,11 @@
     .kop .center { text-align: center; }
     .kop .extra { font-size: {{ 6.5 * $k }}pt; letter-spacing: .3pt; }
     .kop .school { font-weight: bold; font-size: {{ $r['fs']['school'] * .93 * $k }}pt; letter-spacing: .5pt; line-height: 1.15; }
-    .kop .address { font-size: {{ 6.5 * $k }}pt; }
-    .kop .program { font-size: {{ 6.5 * $k }}pt; color: {{ $a }}; font-weight: bold; letter-spacing: .3pt; margin-top: .5mm; }
-    .kop .program img { height: 3.5mm; vertical-align: middle; }
+    .kop .collab { font-size: {{ 7 * $k }}pt; margin-top: .4mm; }
+    .kop .collab b { color: {{ $a }}; letter-spacing: .4pt; }
+    .ng { width: 34mm; text-align: center; }
+    .ng div { background: #fff; border-radius: 1.5mm; padding: 1mm 1.5mm; }
+    .ng img { width: 100%; }
     .kop .title { font-size: {{ 10 * $k }}pt; font-weight: bold; letter-spacing: .7pt; margin-top: .8mm; }
     .kop .subtitle { font-size: {{ 6.5 * $k }}pt; }
     .block { margin-top: {{ $gap }}mm; }
@@ -58,6 +65,9 @@
     .overall .code { font-size: {{ 20 * $k }}pt; font-weight: bold; line-height: 1.05; }
     .overall .lname { font-size: {{ 6.8 * $k }}pt; }
     .overall .score { font-size: {{ 7.8 * $k }}pt; font-weight: bold; margin-top: .5mm; }
+    .overall.wide { padding: {{ 1.2 * $k }}mm 3mm; }
+    .overall.wide span { display: inline-block; vertical-align: middle; margin: 0 2.5mm; }
+    .map { table-layout: fixed; }
     .map td { text-align: center; padding: 0 .5mm; }
     .map .cam { font-size: {{ 5.6 * $k }}pt; color: #4b5563; vertical-align: bottom; padding-bottom: .5mm; }
     .map .box { border-radius: 1.3mm; padding: {{ 1.1 * $k }}mm .4mm; font-size: {{ 8.2 * $k }}pt; font-weight: bold; }
@@ -65,16 +75,10 @@
     .map .box.dim { opacity: .45; }
     .map .box.cur { border: .55mm solid #111827; }
     .map .mark { font-size: {{ 5.6 * $k }}pt; font-weight: bold; padding-top: .6mm; }
-    .map .mark.exp { color: #4b5563; font-weight: normal; font-style: italic; }
-    .status { margin-top: {{ 1.1 * $k }}mm; padding: {{ .9 * $k }}mm 2mm; border-radius: 1.3mm; font-size: {{ 6.8 * $k }}pt; font-weight: bold; text-align: center; }
-    .status-below { background: #FDECEA; color: #B42318; }
-    .status-meeting { background: #E7F6EC; color: #1E7B43; }
-    .status-above { background: #E6F0FA; color: #1F5E99; }
+    .tri { font-family: 'DejaVu Sans', sans-serif; } /* ▲ is not in Pagella */
     .skills th, .cando th { font-size: {{ 6.4 * $k }}pt; color: #4b5563; text-align: left; padding: .6mm 1.2mm; border-bottom: .3mm solid #cbd5e1; }
     .skills td { padding: {{ .75 * $k }}mm 1.2mm; border-bottom: .2mm solid #e2e8f0; vertical-align: middle; font-size: {{ 7.6 * $k }}pt; }
     .skills .total td { font-weight: bold; border-top: .4mm solid {{ $p }}; border-bottom: none; }
-    .bar { height: 2mm; background: #e5e7eb; border-radius: 1mm; width: 24mm; display: inline-block; vertical-align: middle; }
-    .bar span { display: block; height: 2mm; background: {{ $p }}; border-radius: 1mm; }
     .badge { display: inline-block; border-radius: 3mm; padding: .3mm 1.8mm; font-size: {{ 6.8 * $k }}pt; font-weight: bold; min-width: 9mm; text-align: center; }
     .cando td { padding: {{ .75 * $k }}mm 1.2mm; border-bottom: .2mm solid #e2e8f0; font-size: {{ 6.6 * $k }}pt; line-height: 1.22; }
     .cando .sk { width: 19mm; font-weight: bold; font-size: {{ 7.2 * $k }}pt; }
@@ -84,7 +88,6 @@
     .sign .space { height: {{ $sigSpace }}mm; }
     .sign .who { font-weight: bold; border-top: .3mm solid #111827; padding-top: .6mm; font-size: {{ 7.2 * $k }}pt; }
     .place { text-align: right; font-size: {{ 7.2 * $k }}pt; margin-bottom: 1mm; }
-    .foot { font-size: {{ 5.6 * $k }}pt; color: #4b5563; margin-top: {{ $gap * .7 }}mm; text-align: center; }
     .draft { position: absolute; top: {{ $pageH * .36 }}mm; left: 0; width: 100%; text-align: center; font-size: 95pt; font-weight: bold; color: rgba(180, 35, 24, .10); transform: rotate(-30deg); letter-spacing: 6mm; }
     .warn { background: #FFF4E5; color: #9A5B00; border: .3mm solid #9A5B00; padding: 1.5mm 2mm; border-radius: 1.5mm; margin-bottom: 2mm; font-size: 8pt; }
 </style>
@@ -108,18 +111,11 @@
             <td class="center">
                 @if ($r['school']['extra_line'])<div class="extra">{{ $r['school']['extra_line'] }}</div>@endif
                 <div class="school">{{ $r['school']['name'] }}</div>
-                @if ($r['school']['address'])<div class="address">{{ $r['school']['address'] }}</div>@endif
-                <div class="program">
-                    @if ($r['logos']['second'] && $r['logos']['partner'])<img src="{{ $r['logos']['partner'] }}" alt=""> @endif
-                    {{ $r['school']['program'] }}@if ($r['school']['partner'])  •  in partnership with {{ $r['school']['partner'] }}@endif
-                </div>
+                <div class="collab">In Collaboration with <b>NATIONAL GEOGRAPHIC LEARNING</b></div>
                 <div class="title">{{ $r['title'] }}</div>
                 <div class="subtitle">{{ $r['subtitle'] }}</div>
             </td>
-            <td class="logo">
-                @if ($r['logos']['second'])<img src="{{ $r['logos']['second'] }}" alt="">
-                @elseif ($r['logos']['partner'])<img src="{{ $r['logos']['partner'] }}" alt="">@endif
-            </td>
+            <td class="ng"><div><img src="{{ $r['logos']['natgeo'] }}" alt="National Geographic Learning"></div></td>
         </tr>
     </table>
 
@@ -137,25 +133,34 @@
             </tr>
             <tr>
                 <td class="lbl">Homeroom Teacher</td><td class="val">{{ $r['teachers']['homeroom'] ?: '–' }}</td>
-                <td class="lbl">English Teacher</td><td class="val">{{ $r['teachers']['english'] ?: '–' }}</td>
+                <td class="lbl">Academic Year</td><td class="val">{{ $r['term']['year'] }}</td>
             </tr>
         </table>
     </div>
 
-    {{-- 4–5. Overall + CEFR level map --}}
+    {{-- 4–5. Overall + CEFR level map (grade 6: National Geographic placement) --}}
     <div class="block">
         <table>
             <tr>
                 <td style="width: {{ $s['level_map'] ? '36mm' : '100%' }}; padding-right: {{ $s['level_map'] ? '3mm' : '0' }};">
-                    <div class="overall" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">
-                        <div class="cap">OVERALL</div>
-                        <div class="code">{{ $r['overall']['total'] }}<small style="font-size: 50%"> / {{ $r['overall']['max'] }}</small></div>
-                        <div class="score">{{ $r['overall']['level'] }}</div>
-                    </div>
+                    @if ($s['level_map'])
+                        <div class="overall" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">
+                            <div class="cap">OVERALL</div>
+                            <div class="code">{{ $r['overall']['total'] }}<small style="font-size: 50%"> / {{ $r['overall']['max'] }}</small></div>
+                            <div class="score">{{ $r['overall']['level'] }}</div>
+                        </div>
+                    @else
+                        {{-- No map (below grade 6): one slim line instead of a full-width box --}}
+                        <div class="overall wide" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">
+                            <span class="cap">OVERALL</span>
+                            <span class="code" style="font-size: {{ 14 * $k }}pt">{{ $r['overall']['total'] }}<small style="font-size: 55%"> / {{ $r['overall']['max'] }}</small></span>
+                            <span class="score">{{ $r['overall']['level'] }}</span>
+                        </div>
+                    @endif
                 </td>
                 @if ($s['level_map'])
                     <td>
-                        <div class="h">CEFR LEVEL MAP</div>
+                        <div class="h">ONLINE PLACEMENT TEST ALIGNED WITH THE CEFR LEVEL MAP</div>
                         <table class="map">
                             @if ($s['cambridge'])
                                 <tr>@foreach ($r['levels'] as $l)<td class="cam">{{ $l['cambridge'] }}</td>@endforeach</tr>
@@ -171,7 +176,7 @@
                             </tr>
                             <tr>
                                 @foreach ($r['levels'] as $l)
-                                    <td class="mark">@if ($l['current'])▲ CURRENT LEVEL @endif</td>
+                                    <td class="mark">@if ($l['current'])<span class="tri">▲</span> CURRENT LEVEL @endif</td>
                                 @endforeach
                             </tr>
                         </table>
@@ -181,12 +186,12 @@
         </table>
     </div>
 
-    {{-- 6–7. Skill results + radar --}}
+    {{-- 6–7. Skill assessment + line chart --}}
     <div class="block">
         <table>
             <tr>
                 <td style="padding-right: {{ $s['radar'] ? '4mm' : '0' }};">
-                    <div class="h">SKILL RESULTS</div>
+                    <div class="h">SKILL ASSESSMENT BY TEACHER</div>
                     <table class="skills">
                         <tr>
                             <th>Skill</th><th>Score</th>
@@ -205,10 +210,10 @@
                         </tr>
                     </table>
                 </td>
-                @if ($s['radar'] && $r['radar'])
-                    <td style="width: 46mm; text-align: center;">
+                @if ($r['chart'])
+                    <td style="width: {{ $paper === 'f4' ? 70 : 64 }}mm; text-align: center;">
                         <div class="h">SKILL PROFILE</div>
-                        <img src="{{ $r['radar'] }}" alt="Skill profile" style="width: {{ $paper === 'f4' ? 44 : 34 }}mm; height: {{ $paper === 'f4' ? 44 : 34 }}mm;">
+                        <img src="{{ $r['chart'] }}" alt="Skill profile" style="width: {{ $paper === 'f4' ? 68 : 62 }}mm; height: {{ $paper === 'f4' ? 48.6 : 44.3 }}mm;">
                     </td>
                 @endif
             </tr>
@@ -254,11 +259,6 @@
             </tr>
         </table>
     </div>
-
-    {{-- 11. Footnote --}}
-    @if ($s['footnote'])
-        <div class="foot">{{ $r['footnote'] }}</div>
-    @endif
 
     <div class="strip-bottom"></div>
 </div>

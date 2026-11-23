@@ -9,7 +9,7 @@ import { toast } from 'vue-sonner';
  */
 const tipsSeen = useStorage('print.tipsSeen', false);
 const tipsOpen = ref(false);
-const tipsPaper = ref<'f4' | 'a4'>('f4');
+const tipsPaper = ref<'f4' | 'a4'>('a4');
 let pending: (() => void) | null = null;
 
 function printNow(url: string): void {

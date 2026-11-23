@@ -8,12 +8,13 @@ namespace App\Support;
  */
 class ReportLayout
 {
-    public const SECTIONS = ['level_map', 'cambridge', 'radar', 'percent_bar', 'can_do', 'strongest_skill', 'status', 'footnote', 'parent_signature'];
+    /** level_map applies to grade 6 only; 'radar' is the skill profile line chart (key kept from the old radar). */
+    public const SECTIONS = ['level_map', 'cambridge', 'radar', 'can_do', 'strongest_skill', 'parent_signature'];
 
     public const PRESETS = [
-        'lengkap' => ['level_map' => true, 'cambridge' => true, 'radar' => true, 'percent_bar' => true, 'can_do' => true, 'strongest_skill' => true, 'status' => true, 'footnote' => true, 'parent_signature' => true],
-        'ringkas' => ['level_map' => true, 'cambridge' => true, 'radar' => true, 'percent_bar' => true, 'can_do' => false, 'strongest_skill' => true, 'status' => true, 'footnote' => true, 'parent_signature' => true],
-        'minimal' => ['level_map' => false, 'cambridge' => false, 'radar' => false, 'percent_bar' => false, 'can_do' => false, 'strongest_skill' => true, 'status' => false, 'footnote' => false, 'parent_signature' => true],
+        'lengkap' => ['level_map' => true, 'cambridge' => true, 'radar' => true, 'can_do' => true, 'strongest_skill' => true, 'parent_signature' => true],
+        'ringkas' => ['level_map' => true, 'cambridge' => true, 'radar' => true, 'can_do' => false, 'strongest_skill' => true, 'parent_signature' => true],
+        'minimal' => ['level_map' => false, 'cambridge' => false, 'radar' => false, 'can_do' => false, 'strongest_skill' => true, 'parent_signature' => true],
     ];
 
     public const THEMES = [
@@ -24,7 +25,6 @@ class ReportLayout
     public const ROLES = [
         'parent' => 'Parent / Guardian',
         'homeroom' => 'Homeroom Teacher',
-        'english' => 'English Teacher (ICP)',
         'principal' => 'Principal',
     ];
 
@@ -35,10 +35,10 @@ class ReportLayout
     {
         return [
             'preset' => 'lengkap',
-            'paper_default' => 'f4',
+            'paper_default' => 'a4',
             'margin_mm' => 12,
             'theme' => ['preset' => 'navy', ...self::THEMES['navy']],
-            'header' => ['extra_line' => '', 'show_muhammadiyah_logo' => false, 'title' => self::DEFAULT_TITLE],
+            'header' => ['extra_line' => '', 'title' => self::DEFAULT_TITLE],
             'sections' => self::PRESETS['lengkap'],
             'signatures' => array_map(fn ($role) => ['role' => $role, 'label' => self::ROLES[$role]], array_keys(self::ROLES)),
             'id_label' => 'NBM',
@@ -52,12 +52,12 @@ class ReportLayout
         $l = array_replace_recursive($d, $layout ?? []);
 
         $l['preset'] = in_array($l['preset'], ['lengkap', 'ringkas', 'minimal', 'kustom'], true) ? $l['preset'] : 'lengkap';
-        $l['paper_default'] = in_array($l['paper_default'], ['f4', 'a4'], true) ? $l['paper_default'] : 'f4';
+        $l['paper_default'] = in_array($l['paper_default'], ['f4', 'a4'], true) ? $l['paper_default'] : 'a4';
         $l['margin_mm'] = max(8, min(20, (int) $l['margin_mm']));
         $l['sections'] = array_combine(self::SECTIONS, array_map(fn ($s) => (bool) ($l['sections'][$s] ?? true), self::SECTIONS));
         $l['header']['title'] = trim((string) $l['header']['title']) ?: self::DEFAULT_TITLE;
         $l['header']['extra_line'] = trim((string) $l['header']['extra_line']);
-        $l['header']['show_muhammadiyah_logo'] = (bool) $l['header']['show_muhammadiyah_logo'];
+        $l['header'] = ['extra_line' => $l['header']['extra_line'], 'title' => $l['header']['title']];
         $l['id_label'] = in_array($l['id_label'], ['NBM', 'NIP', 'none'], true) ? $l['id_label'] : 'NBM';
 
         $preset = $l['theme']['preset'] ?? 'navy';

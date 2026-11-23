@@ -118,7 +118,7 @@ function continueBatch(): void {
             aria-label="Ukuran kertas"
         >
             <button
-                v-for="p in ['f4', 'a4'] as const"
+                v-for="p in ['a4', 'f4'] as const"
                 :key="p"
                 type="button"
                 role="radio"

@@ -44,7 +44,7 @@ beforeEach(function () {
 it('lists printable students on the Rapor tab', function () {
     $this->get("/kelas/{$this->class->id}/rapor")->assertInertia(fn (Assert $p) => $p
         ->where('tab', 'rapor')
-        ->where('paperDefault', 'f4')
+        ->where('paperDefault', 'a4')
         ->has('students', 3)
         ->where('students.0.overall_level', 'Intermediate')
         ->where('students.0.total', 56)
@@ -53,23 +53,33 @@ it('lists printable students on the Rapor tab', function () {
 });
 
 it('renders the HTML preview with the same content as the PDF, marked DRAFT', function () {
-    $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/html?paper=a4")->assertOk()->assertSee('size: 210mm 297mm', false);
+    $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/html?paper=f4")->assertOk()->assertSee('size: 215mm 330mm', false);
 
     $html = $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/html")->getContent();
     expect($html)->toContain('Kevin Wijaya')
         ->toContain('SD MUHAMMADIYAH WONOREJO')
+        ->toContain('In Collaboration with <b>NATIONAL GEOGRAPHIC LEARNING</b>')
+        ->toContain('alt="National Geographic Learning"')
+        ->toContain('SKILL ASSESSMENT BY TEACHER')
+        ->toContain('fonts/pagella/TeXGyrePagella-regular.ttf')
+        ->toContain('size: 210mm 297mm') // A4 by default
+        ->not->toContain('English Teacher')
+        ->not->toContain('CEFR-Aligned')
         ->toContain('Strongest skill this term: Reading.')
         ->toContain('Sidoarjo, 18 December 2026')
-        ->toContain('<div class="score">Intermediate</div>')
+        ->toContain('<span class="score">Intermediate</span>')
         ->toContain('56 / 100')
         ->not->toContain('EXPECTED LEVEL')
         ->not->toContain('CEFR LEVEL MAP') // grade 5: no National Geographic map
+        ->toContain('Parent / Guardian')
+        ->toContain('Homeroom Teacher')
+        ->toContain('Principal')
         ->toContain('NBM. 987')
         ->toContain('class="draft"');
 });
 
-it('downloads one PDF page with the PRD file name, F4 by default and A4 on request', function () {
-    $res = $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/pdf");
+it('downloads one PDF page with the PRD file name, A4 by default and F4 on request', function () {
+    $res = $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/pdf?paper=f4");
     $res->assertOk()->assertHeader('Content-Type', 'application/pdf');
     expect($res->headers->get('Content-Disposition'))->toBe('attachment; filename="Report_5001_Kevin_Wijaya_2026-2027_S1_F4.pdf"');
 
@@ -78,7 +88,7 @@ it('downloads one PDF page with the PRD file name, F4 by default and A4 on reque
     $size = $fpdi->getTemplateSize($fpdi->importPage(1));
     expect(round($size['width']))->toEqual(215)->and(round($size['height']))->toEqual(330);
 
-    $a4 = $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/pdf?paper=a4&inline=1");
+    $a4 = $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/pdf?inline=1");
     expect($a4->headers->get('Content-Disposition'))->toStartWith('inline;')->toContain('_A4.pdf');
     $fpdi = new Fpdi;
     $fpdi->setSourceFile(StreamReader::createByString($a4->getContent()));
@@ -92,21 +102,21 @@ it('refuses reports for incomplete students', function () {
 });
 
 it('uses the finalisation snapshot: later layout, threshold and logo changes do not alter final reports', function () {
-    $this->settings()->set(['report_layout' => array_replace(ReportLayout::defaults(), ['header' => ['title' => 'TITLE AT FINALISATION', 'extra_line' => '', 'show_muhammadiyah_logo' => false]])]);
+    $this->settings()->set(['report_layout' => array_replace(ReportLayout::defaults(), ['header' => ['title' => 'TITLE AT FINALISATION', 'extra_line' => '']])]);
     $this->post('/pengaturan/sekolah/logo/school', ['logo' => UploadedFile::fake()->image('old.png', 50, 50)]);
     $this->empty->student->update(['is_active' => false]);
     $this->post("/kelas/{$this->class->id}/finalkan")->assertSessionHas('success');
 
-    $this->settings()->set(['report_layout' => array_replace(ReportLayout::defaults(), ['header' => ['title' => 'NEW TITLE', 'extra_line' => '', 'show_muhammadiyah_logo' => false]])]);
+    $this->settings()->set(['report_layout' => array_replace(ReportLayout::defaults(), ['header' => ['title' => 'NEW TITLE', 'extra_line' => '']])]);
     ScoringConfig::where(['term_id' => $this->term->id, 'grade' => 5])->update(['min_intermediate' => 18, 'min_advanced' => 22]);
     $this->delete('/pengaturan/sekolah/logo/school');
 
     $html = $this->get("/kelas/{$this->class->id}/rapor/{$this->kevin->id}/html")->getContent();
+    expect(substr_count($html, 'data:image/png;base64'))->toBe(3); // frozen school logo copy + National Geographic logo + chart
     expect($html)->toContain('TITLE AT FINALISATION')
         ->not->toContain('NEW TITLE')
         ->not->toContain('class="draft"')
-        ->toContain('<div class="score">Intermediate</div>') // live thresholds would now say Beginner
-        ->toContain('data:image/png;base64'); // the frozen logo copy is still used
+        ->toContain('<span class="score">Intermediate</span>'); // live thresholds would now say Beginner
 });
 
 it('builds all reports in chunks and merges them into one PDF', function () {
@@ -170,12 +180,12 @@ it('saves the report layout with a recent PIN and validates contrast and signatu
     $this->withPinSession()->put('/pengaturan/rapor', $bad)->assertSessionHasErrors('signatures');
 });
 
-it('previews the layout live with sample data and warns about a missing Muhammadiyah logo', function () {
-    $layout = ReportLayout::defaults();
-    $layout['header']['show_muhammadiyah_logo'] = true;
-
-    $html = $this->postJson('/pengaturan/rapor/pratinjau', $layout + ['paper' => 'a4'])->assertOk()->json('html');
-    expect($html)->toContain('Kevin Wijaya')->toContain('Logo Muhammadiyah belum diunggah');
+it('previews the layout live with sample data and warns about a missing school logo', function () {
+    $html = $this->postJson('/pengaturan/rapor/pratinjau', ReportLayout::defaults() + ['paper' => 'a4'])->assertOk()->json('html');
+    expect($html)->toContain('Kevin Wijaya')
+        ->toContain('Logo sekolah belum diunggah')
+        ->toContain('ONLINE PLACEMENT TEST ALIGNED WITH THE CEFR LEVEL MAP') // the sample is a grade 6 student
+        ->toContain('CURRENT LEVEL');
 });
 
 it('computes WCAG contrast for custom colours', function () {
@@ -193,7 +203,10 @@ it('renders the preview page and the layout settings page', function () {
 
     $this->get('/pengaturan/rapor')->assertInertia(fn (Assert $p) => $p
         ->component('Settings/Report')
-        ->where('layout.paper_default', 'f4')
+        ->where('layout.paper_default', 'a4')
         ->where('layout.id_label', 'NBM')
-        ->has('layout.signatures', 4));
+        ->has('layout.signatures', 3)
+        ->where('layout.signatures.0.role', 'parent')
+        ->where('layout.signatures.1.role', 'homeroom')
+        ->where('layout.signatures.2.role', 'principal'));
 });
