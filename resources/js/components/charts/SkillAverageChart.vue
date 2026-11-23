@@ -53,7 +53,7 @@ const options: ChartOptions<'bar'> = {
         <Bar
             :data="data"
             :options="options"
-            aria-label="Rata-rata persentase per skill"
+            aria-label="Rata-rata nilai per skill"
             role="img"
         />
     </div>

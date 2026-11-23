@@ -62,7 +62,7 @@ it('finalizes: snapshot, final results, lock, log', function () {
         ->and($kevin->strongest_skill)->toBe('reading')
         ->and($kevin->comment_final)->toStartWith('Kevin Wijaya can understand and use English in everyday situations')
         ->and($kevin->comment_final)->toEndWith('Strongest skill this term: Reading.')
-        ->and(FinalResult::where('enrollment_id', $this->citra->id)->value('comment_final'))->toBe('Keep it up!');
+        ->and(FinalResult::where('enrollment_id', $this->citra->id)->value('comment_final'))->toBe('Citra Ayu keep it up!'); // teacher comment gets the name in front
 
     $snapshot = Finalization::find($class->current_finalization_id)->config_snapshot;
     expect($snapshot['scoring']['intermediate'])->toEqual(13)
@@ -95,9 +95,9 @@ it('requires the National Geographic level before finalizing grade 6', function 
     $this->getJson("/kelas/{$g6->id}/kesiapan-final")->assertJsonPath('incomplete.0.missing', ['NatGeo']);
     $this->post("/kelas/{$g6->id}/finalkan")->assertSessionHas('error');
 
-    $score->update(['natgeo_level' => 'A2']);
+    $score->update(['natgeo_level' => 'A2.2']);
     $this->post("/kelas/{$g6->id}/finalkan")->assertSessionHas('success');
-    expect(FinalResult::where('enrollment_id', $e->id)->value('natgeo_level'))->toBe('A2');
+    expect(FinalResult::where('enrollment_id', $e->id)->value('natgeo_level'))->toBe('A2.2');
 });
 
 it('unfinalizes with a reason and PIN, keeps the last snapshot, and can finalize again', function () {

@@ -30,7 +30,7 @@ const heading = computed(
 
 function download(): void {
     const text = [
-        'ICP CEFR Report — Kode Pemulihan PIN',
+        'ICP Report — Kode Pemulihan PIN',
         '',
         props.code,
         '',

@@ -1,4 +1,9 @@
-import type { Band, Level, ScoringConfig, StudentResult } from '@/lib/cefr';
+import type {
+    Band,
+    NatgeoGroups,
+    ScoringConfig,
+    StudentResult,
+} from '@/lib/cefr';
 
 export type ClassInfo = {
     id: number;
@@ -24,7 +29,7 @@ export type GridProps = {
     /** Automatic comment per band (fallback when the teacher writes none). */
     comments: Partial<Record<Band, string>>;
     /** Grade 6 only: the National Geographic CEFR levels; null for other grades. */
-    natgeoLevels: Level[] | null;
+    natgeoLevels: NatgeoGroups | null;
 };
 
 export type ResultMap = Map<number, StudentResult>;

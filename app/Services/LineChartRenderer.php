@@ -52,11 +52,11 @@ class LineChartRenderer
         imagesetthickness($img, 1 * $k);
         foreach ([5, 10, 15, 20, 25] as $tick) {
             imageline($img, (int) $left, (int) $y($tick), (int) $right, (int) $y($tick), $tick === 5 ? $axis : $grid);
-            $label((string) $tick, 11.5, $left - 7 * $k, $y($tick) + 4 * $k, $text, false, true);
+            $label((string) $tick, 10, $left - 7 * $k, $y($tick) + 4 * $k, $text, false, true);
         }
         imageline($img, (int) $left, (int) $top, (int) $left, (int) $bottom, $axis);
         foreach (self::SKILLS as $i => $s) {
-            $label($s, 12, $x($i), $bottom + 20 * $k, $text, true);
+            $label($s, 10.5, $x($i), $bottom + 18 * $k, $text, true);
         }
 
         $pts = [];
@@ -78,7 +78,7 @@ class LineChartRenderer
             imagefilledellipse($img, (int) $px, (int) $py, 10 * $k, 10 * $k, $rgb($pointHex[$i] ?? $lineHex));
             $txt = rtrim(rtrim(number_format($v, 1, '.', ''), '0'), '.');
             $ty = $py - 11 * $k;
-            $label($txt, 12.5, $px, $ty, $text, true);
+            $label($txt, 11, $px, $ty, $text, true);
         }
 
         $out = imagecreatetruecolor($w, $h);

@@ -1,4 +1,4 @@
-import type { Band, Level, Skill } from '@/lib/cefr';
+import type { Band, NatgeoLevel, Skill } from '@/lib/cefr';
 
 export type ClassDist = {
     id: number;
@@ -20,7 +20,7 @@ export type ProgressPoint = {
     total: number;
     overall_level: Band;
     /** Grade 6 only: National Geographic CEFR placement level. */
-    natgeo: Level | null;
+    natgeo: NatgeoLevel | null; // sub-level, e.g. A2.2
     source: 'final' | 'correcting' | 'draft';
     pdf_url: string | null;
     change: 'up' | 'down' | 'same' | null;

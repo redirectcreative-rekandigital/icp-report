@@ -42,6 +42,10 @@ it('loads charts and highlights as deferred props', function () {
             ->where('charts.byClass.4.skills.reading', fn ($v) => $v >= 5 && $v <= 25)
             ->where('charts.natgeo', ['Pre-A1' => 1, 'A1' => 1, 'A2' => 2, 'B1' => 1, 'B2' => 0, 'empty' => 0])
             ->has('charts.byGrade', 4)
+            ->has('charts.bySkill', 5)
+            ->where('charts.bySkill.0.skill', 'listening')
+            ->where('charts.bySkill.4.skill', 'total')
+            ->where('charts.bySkill.4.levels', fn ($l) => collect($l)->sum() === 20) // every assessed student
             ->has('charts.insights', fn (Assert $i) => $i->etc())));
 });
 

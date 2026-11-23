@@ -196,6 +196,16 @@ describe('Dashboard page', () => {
                         },
                     },
                 ],
+                bySkill: [
+                    {
+                        skill: 'listening',
+                        levels: { Beginner: 0, Intermediate: 2, Advanced: 0 },
+                    },
+                    {
+                        skill: 'total',
+                        levels: { Beginner: 1, Intermediate: 1, Advanced: 0 },
+                    },
+                ],
                 natgeo: {
                     'Pre-A1': 0,
                     A1: 1,
@@ -225,6 +235,7 @@ describe('Dashboard page', () => {
         expect(text).toContain('Kelas final');
         expect(text).toContain('Kelas 5A belum diisi sama sekali.');
         expect(text).toContain('Sebaran level per kelas');
+        expect(text).toContain('Sebaran level per skill');
         expect(text).toContain('Perbandingan periode');
         expect(text).toContain('Progres kelas');
         expect(text).toContain('3,4 dari periode lalu');

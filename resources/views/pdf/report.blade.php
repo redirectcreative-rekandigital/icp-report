@@ -65,8 +65,6 @@
     .overall .code { font-size: {{ 20 * $k }}pt; font-weight: bold; line-height: 1.05; }
     .overall .lname { font-size: {{ 6.8 * $k }}pt; }
     .overall .score { font-size: {{ 7.8 * $k }}pt; font-weight: bold; margin-top: .5mm; }
-    .overall.wide { padding: {{ 1.2 * $k }}mm 3mm; }
-    .overall.wide span { display: inline-block; vertical-align: middle; margin: 0 2.5mm; }
     .map { table-layout: fixed; }
     .map td { text-align: center; padding: 0 .5mm; }
     .map .cam { font-size: {{ 5.6 * $k }}pt; color: #4b5563; vertical-align: bottom; padding-bottom: .5mm; }
@@ -76,8 +74,11 @@
     .map .box.cur { border: .55mm solid #111827; }
     .map .mark { font-size: {{ 5.6 * $k }}pt; font-weight: bold; padding-top: .6mm; }
     .tri { font-family: 'DejaVu Sans', sans-serif; } /* ▲ is not in Pagella */
+    .map .subs { padding-top: .6mm; white-space: nowrap; }
+    .map .sub { display: inline-block; font-size: {{ 5.6 * $k }}pt; color: #4b5563; padding: .2mm .7mm; border-radius: .8mm; border: .2mm solid transparent; }
+    .map .sub.on { font-weight: bold; border-color: #111827; }
     .skills th, .cando th { font-size: {{ 6.4 * $k }}pt; color: #4b5563; text-align: left; padding: .6mm 1.2mm; border-bottom: .3mm solid #cbd5e1; }
-    .skills td { padding: {{ .75 * $k }}mm 1.2mm; border-bottom: .2mm solid #e2e8f0; vertical-align: middle; font-size: {{ 7.6 * $k }}pt; }
+    .skills td { padding: {{ 1.45 * $k }}mm 1.2mm; border-bottom: .2mm solid #e2e8f0; vertical-align: middle; font-size: {{ 7.6 * $k }}pt; }
     .skills .total td { font-weight: bold; border-top: .4mm solid {{ $p }}; border-bottom: none; }
     .badge { display: inline-block; border-radius: 3mm; padding: .3mm 1.8mm; font-size: {{ 6.8 * $k }}pt; font-weight: bold; min-width: 9mm; text-align: center; }
     .cando td { padding: {{ .75 * $k }}mm 1.2mm; border-bottom: .2mm solid #e2e8f0; font-size: {{ 6.6 * $k }}pt; line-height: 1.22; }
@@ -138,27 +139,26 @@
         </table>
     </div>
 
-    {{-- 4–5. Overall + CEFR level map (grade 6: National Geographic placement) --}}
+    {{-- 4–5. Grade 6 only: National Geographic level card + CEFR level map. The teacher total is in the skills table. --}}
+    @if ($s['level_map'])
     <div class="block">
         <table>
             <tr>
-                <td style="width: {{ $s['level_map'] ? '36mm' : '100%' }}; padding-right: {{ $s['level_map'] ? '3mm' : '0' }};">
-                    @if ($s['level_map'])
-                        <div class="overall" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">
-                            <div class="cap">OVERALL</div>
-                            <div class="code">{{ $r['overall']['total'] }}<small style="font-size: 50%"> / {{ $r['overall']['max'] }}</small></div>
-                            <div class="score">{{ $r['overall']['level'] }}</div>
+                <td style="width: 36mm; padding-right: 3mm;">
+                    @if ($c = $r['natgeo_card'])
+                        <div class="overall" style="background: {{ $c['bg'] }}; color: {{ $c['fg'] }};">
+                            <div class="cap">CEFR LEVEL</div>
+                            <div class="code">{{ $c['level'] }}</div>
+                            <div class="score">{{ $c['sub'] }} · {{ $c['name'] }}</div>
                         </div>
                     @else
-                        {{-- No map (below grade 6): one slim line instead of a full-width box --}}
-                        <div class="overall wide" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">
-                            <span class="cap">OVERALL</span>
-                            <span class="code" style="font-size: {{ 14 * $k }}pt">{{ $r['overall']['total'] }}<small style="font-size: 55%"> / {{ $r['overall']['max'] }}</small></span>
-                            <span class="score">{{ $r['overall']['level'] }}</span>
+                        <div class="overall" style="background: #e5e7eb; color: #4b5563;">
+                            <div class="cap">CEFR LEVEL</div>
+                            <div class="code">–</div>
+                            <div class="score">Belum diisi</div>
                         </div>
                     @endif
                 </td>
-                @if ($s['level_map'])
                     <td>
                         <div class="h">ONLINE PLACEMENT TEST ALIGNED WITH THE CEFR LEVEL MAP</div>
                         <table class="map">
@@ -174,46 +174,54 @@
                                     </td>
                                 @endforeach
                             </tr>
+                            {{-- National Geographic sub-levels under each category; the student's one is marked --}}
                             <tr>
                                 @foreach ($r['levels'] as $l)
-                                    <td class="mark">@if ($l['current'])<span class="tri">▲</span> CURRENT LEVEL @endif</td>
+                                    <td class="subs">
+                                        @foreach ($l['subs'] as $sub)
+                                            <span class="sub {{ $sub['current'] ? 'on' : '' }}" @if ($sub['current']) style="background: {{ $l['bg'] }}; color: {{ $l['fg'] }};" @endif>{{ $sub['label'] }}</span>
+                                        @endforeach
+                                    </td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                @foreach ($r['levels'] as $l)
+                                    <td class="mark">@if ($l['current'])<span class="tri">▲</span> CURRENT LEVEL: {{ $r['natgeo'] }} @endif</td>
                                 @endforeach
                             </tr>
                         </table>
                     </td>
-                @endif
             </tr>
         </table>
     </div>
+    @endif
 
     {{-- 6–7. Skill assessment + line chart --}}
     <div class="block">
         <table>
             <tr>
-                <td style="padding-right: {{ $s['radar'] ? '4mm' : '0' }};">
+                <td style="padding-right: {{ $r['chart'] ? '4mm' : '0' }}; {{ $r['chart'] ? 'width: 50%;' : '' }}">
                     <div class="h">SKILL ASSESSMENT BY TEACHER</div>
                     <table class="skills">
                         <tr>
-                            <th>Skill</th><th>Score</th>
-                            <th style="text-align:center">Level</th>
+                            <th>Skill</th><th style="text-align:right">Score</th>
                         </tr>
                         @foreach ($r['skills'] as $sk)
                             <tr>
                                 <td style="font-weight:bold">{{ $sk['label'] }}</td>
-                                <td>{{ $sk['score'] }} / {{ $sk['max'] }}</td>
-                                <td style="text-align:center"><span class="badge" style="background: {{ $sk['bg'] }}; color: {{ $sk['fg'] }};">{{ $sk['level'] }}</span></td>
+                                <td style="text-align:right">{{ $sk['score'] }} / {{ $sk['max'] }}</td>
                             </tr>
                         @endforeach
                         <tr class="total">
-                            <td>TOTAL</td><td>{{ $r['overall']['total'] }} / {{ $r['overall']['max'] }}</td>
-                            <td style="text-align:center"><span class="badge" style="background: {{ $r['overall']['bg'] }}; color: {{ $r['overall']['fg'] }};">{{ $r['overall']['level'] }}</span></td>
+                            <td>TOTAL</td><td style="text-align:right">{{ $r['overall']['total'] }} / {{ $r['overall']['max'] }}</td>
                         </tr>
                     </table>
                 </td>
                 @if ($r['chart'])
-                    <td style="width: {{ $paper === 'f4' ? 70 : 64 }}mm; text-align: center;">
+                    {{-- Same width as the skills table; the chart is drawn 420×240 px (7:4). --}}
+                    <td style="width: 50%; text-align: center;">
                         <div class="h">SKILL PROFILE</div>
-                        <img src="{{ $r['chart'] }}" alt="Skill profile" style="width: {{ $paper === 'f4' ? 68 : 62 }}mm; height: {{ $paper === 'f4' ? 48.6 : 44.3 }}mm;">
+                        <img src="{{ $r['chart'] }}" alt="Skill profile" style="width: {{ $paper === 'f4' ? 84 : 80 }}mm; height: {{ $paper === 'f4' ? 48 : 45.7 }}mm;">
                     </td>
                 @endif
             </tr>

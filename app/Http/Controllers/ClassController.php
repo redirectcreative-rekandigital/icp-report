@@ -77,7 +77,7 @@ class ClassController extends Controller
             $props['config'] = $scores->config($classroom)->toArray();
             $props['comments'] = ScoreService::overallComments();
             // Grade 6 only: National Geographic CEFR placement level per student.
-            $props['natgeoLevels'] = $classroom->usesNatGeo() ? Level::values() : null;
+            $props['natgeoLevels'] = $classroom->usesNatGeo() ? Level::subLevelGroups() : null;
             $props['rows'] = $scores->rows($classroom);
         }
 

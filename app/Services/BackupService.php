@@ -17,7 +17,7 @@ use ZipArchive;
  */
 class BackupService
 {
-    public const APP = 'icp-cefr-report';
+    public const APP = 'icp-cefr-report'; // internal backup ID (kept so older backups still restore), not the app name
 
     public const FORMAT = 1;
 
@@ -79,7 +79,7 @@ class BackupService
         $manifest = json_decode((string) $zip->getFromName('manifest.json'), true);
         if (($manifest['app'] ?? null) !== self::APP || ($manifest['format'] ?? null) !== self::FORMAT) {
             $zip->close();
-            throw new BusinessRuleException('File ini bukan cadangan ICP CEFR Report.');
+            throw new BusinessRuleException('File ini bukan cadangan ICP Report.');
         }
 
         $data = [];

@@ -1,39 +1,17 @@
 <script setup lang="ts">
-import {
-    ArrowDown,
-    ArrowUp,
-    Check,
-    Clock,
-    Lock,
-    Pencil,
-} from 'lucide-vue-next';
+import { Clock, Lock, Pencil } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { cn } from '@/lib/utils';
 
-/** Below/Meeting/Above/Belum lengkap/Draft/Final — always icon + text (PRD-07 §2.3). */
+/** Belum lengkap / Draft / Final — always icon + text (PRD-07 §2.3). */
 const props = defineProps<{
-    status: 'below' | 'meeting' | 'above' | 'incomplete' | 'draft' | 'final';
+    status: 'incomplete' | 'draft' | 'final';
     size?: 'sm' | 'md';
 }>();
 
 const config = computed(
     () =>
         ({
-            below: {
-                label: 'Below',
-                icon: ArrowDown,
-                cls: 'bg-status-below text-status-below-fg',
-            },
-            meeting: {
-                label: 'Meeting',
-                icon: Check,
-                cls: 'bg-status-meeting text-status-meeting-fg',
-            },
-            above: {
-                label: 'Above',
-                icon: ArrowUp,
-                cls: 'bg-status-above text-status-above-fg',
-            },
             incomplete: {
                 label: 'Belum lengkap',
                 icon: Clock,

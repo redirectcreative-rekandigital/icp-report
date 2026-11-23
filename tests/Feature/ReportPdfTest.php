@@ -55,3 +55,11 @@ it('stays on one page with every section off and with every section on at 20 mm 
         expect(PdfReportService::pageCount($pdf))->toBe(1);
     }
 })->with([true, false]);
+
+it('shows a grey "Belum diisi" card while the grade 6 National Geographic level is empty', function () {
+    $html = app(PdfReportService::class)->html(app(ReportDataBuilder::class)->build($this->e, 'a4', forPreview: true));
+
+    expect($html)->toContain('<div class="cap">CEFR LEVEL</div>')
+        ->toContain('Belum diisi')
+        ->not->toContain('CURRENT LEVEL');
+});

@@ -67,7 +67,8 @@ it('renders the HTML preview with the same content as the PDF, marked DRAFT', fu
         ->not->toContain('CEFR-Aligned')
         ->toContain('Strongest skill this term: Reading.')
         ->toContain('Sidoarjo, 18 December 2026')
-        ->toContain('<span class="score">Intermediate</span>')
+        ->not->toContain('OVERALL') // grades 3–5: no overall card, the total is in the skills table
+        ->not->toContain('>Level</th>') // skills table: Skill + Score only
         ->toContain('56 / 100')
         ->not->toContain('EXPECTED LEVEL')
         ->not->toContain('CEFR LEVEL MAP') // grade 5: no National Geographic map
@@ -116,7 +117,7 @@ it('uses the finalisation snapshot: later layout, threshold and logo changes do 
     expect($html)->toContain('TITLE AT FINALISATION')
         ->not->toContain('NEW TITLE')
         ->not->toContain('class="draft"')
-        ->toContain('<span class="score">Intermediate</span>'); // live thresholds would now say Beginner
+        ->toContain('>Intermediate</span>'); // snapshot level; live thresholds would now say Beginner everywhere
 });
 
 it('builds all reports in chunks and merges them into one PDF', function () {
@@ -185,7 +186,11 @@ it('previews the layout live with sample data and warns about a missing school l
     expect($html)->toContain('Kevin Wijaya')
         ->toContain('Logo sekolah belum diunggah')
         ->toContain('ONLINE PLACEMENT TEST ALIGNED WITH THE CEFR LEVEL MAP') // the sample is a grade 6 student
-        ->toContain('CURRENT LEVEL');
+        ->toContain('CURRENT LEVEL: A2.2') // sample student: National Geographic sub-level
+        ->toContain('<div class="cap">CEFR LEVEL</div>')
+        ->toContain('A2.2 · Elementary') // the card shows the NatGeo level, not the teacher total
+        ->not->toContain('OVERALL')
+        ->toContain('>A2.1</span>')->toContain('>B2.3</span>'); // every sub-level listed
 });
 
 it('computes WCAG contrast for custom colours', function () {

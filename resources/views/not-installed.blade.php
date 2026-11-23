@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Belum dipasang — ICP CEFR Report</title>
+    <title>Belum dipasang — ICP Report</title>
     <style>
         body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #1F3A68; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .card { background: #fff; border-radius: 14px; max-width: 460px; padding: 28px; border-top: 6px solid #E3A82B; box-shadow: 0 20px 40px rgba(0,0,0,.25); }

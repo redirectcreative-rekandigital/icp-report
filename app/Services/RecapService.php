@@ -69,6 +69,7 @@ class RecapService
                 'class' => $c->name,
                 'grade' => $c->grade,
                 'scores' => array_combine(Skill::values(), array_map(fn ($s) => $r->{$s}, Skill::values())),
+                'levels' => array_combine(Skill::values(), array_map(fn ($s) => $r->{"{$s}_level"}, Skill::values())),
                 'total' => $r->total,
                 'overall_level' => $r->overall_level,
                 'natgeo' => $r->natgeo_level,
@@ -94,6 +95,7 @@ class RecapService
                     'class' => $c->name,
                     'grade' => $c->grade,
                     'scores' => $payload['scores'],
+                    'levels' => $r->level,
                     'total' => $r->total,
                     'overall_level' => $r->overallLevel,
                     'natgeo' => $c->usesNatGeo() ? $payload['natgeo'] : null,
@@ -174,12 +176,22 @@ class RecapService
 
         $natgeo = $rows->where('grade', Classroom::NATGEO_GRADE);
 
+        // Band counts per skill (students with that skill scored) and for the total.
+        $bySkill = [
+            ...array_map(fn ($s) => [
+                'skill' => $s,
+                'levels' => collect($bands)->mapWithKeys(fn ($l) => [$l => $rows->filter(fn ($x) => ($x['levels'][$s] ?? null) === $l)->count()])->all(),
+            ], Skill::values()),
+            ['skill' => 'total', 'levels' => collect($bands)->mapWithKeys(fn ($l) => [$l => $assessed->where('overall_level', $l)->count()])->all()],
+        ];
+
         return [
             'byClass' => $byClass,
             'byGrade' => $byGrade,
+            'bySkill' => $bySkill,
             // Grade 6 National Geographic placement levels (Pre-A1–B2) + students not yet entered.
             'natgeo' => [
-                ...collect(Level::values())->mapWithKeys(fn ($l) => [$l => $natgeo->where('natgeo', $l)->count()])->all(),
+                ...collect(Level::values())->mapWithKeys(fn ($l) => [$l => $natgeo->filter(fn ($x) => Level::ofSub($x['natgeo'])?->value === $l)->count()])->all(),
                 'empty' => $natgeo->whereNull('natgeo')->count(),
             ],
             'trend' => $this->trend(),

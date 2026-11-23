@@ -110,6 +110,7 @@ const props = defineProps<{
             levels: Record<Band, number>;
             skills: Record<Skill, number | null>;
         }[];
+        bySkill: { skill: Skill | 'total'; levels: Record<Band, number> }[];
         natgeo: Record<Level, number> & { empty: number };
         trend: {
             labels: string[];
@@ -203,6 +204,8 @@ const steps = computed(() => [
 ]);
 
 /* ---------- charts ---------- */
+const skillName = (s: Skill | 'total') =>
+    s === 'total' ? 'Total' : SKILL_LABEL[s];
 const skillBy = ref<'class' | 'grade'>('class');
 const skillGroups = computed(() =>
     !props.charts
@@ -619,12 +622,73 @@ const diff = (a: number | null, b: number | null) =>
                             </ChartCard>
                         </div>
 
-                        <div class="mb-6 grid gap-4 lg:grid-cols-2">
+                        <div
+                            class="mb-6 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3"
+                        >
+                            <ChartCard
+                                title="Sebaran level per skill"
+                                description="Jumlah siswa Beginner / Intermediate / Advanced di tiap skill dan total."
+                                :empty="!hasAssessed"
+                            >
+                                <LevelByGradeChart
+                                    chart-label="Sebaran level per skill"
+                                    :groups="
+                                        charts.bySkill.map((s) => ({
+                                            label: skillName(s.skill),
+                                            levels: s.levels,
+                                        }))
+                                    "
+                                />
+                                <template #table>
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr
+                                                class="text-left text-muted-foreground"
+                                            >
+                                                <th class="py-1">Skill</th>
+                                                <th
+                                                    v-for="l in BANDS"
+                                                    :key="l"
+                                                    class="py-1 text-right"
+                                                >
+                                                    {{ l }}
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr
+                                                v-for="s in charts.bySkill"
+                                                :key="s.skill"
+                                                class="border-t"
+                                            >
+                                                <td class="py-1 font-semibold">
+                                                    {{ skillName(s.skill) }}
+                                                </td>
+                                                <td
+                                                    v-for="l in BANDS"
+                                                    :key="l"
+                                                    class="py-1 text-right tabular-nums"
+                                                >
+                                                    {{ s.levels[l] }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </template>
+                            </ChartCard>
                             <ChartCard
                                 title="Sebaran level per jenjang"
                                 :empty="!hasAssessed"
                             >
-                                <LevelByGradeChart :grades="charts.byGrade" />
+                                <LevelByGradeChart
+                                    chart-label="Sebaran level per jenjang"
+                                    :groups="
+                                        charts.byGrade.map((g) => ({
+                                            label: `Kelas ${g.grade}`,
+                                            levels: g.levels,
+                                        }))
+                                    "
+                                />
                                 <template #table>
                                     <table class="w-full text-sm">
                                         <thead>

@@ -50,7 +50,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'dash-charts',
                 title: 'Grafik',
-                text: 'Klik segmen untuk melihat daftar siswa. Ikon tabel menampilkan angka; ikon unduh menyimpan gambar.',
+                text: 'Sebaran level per kelas, per skill, dan per jenjang, rata-rata nilai, serta level National Geographic Kelas 6. Klik segmen untuk melihat daftar siswa; ikon tabel menampilkan angka, ikon unduh menyimpan gambar.',
             },
             {
                 anchor: 'dash-progress',
@@ -121,7 +121,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'score-comment',
                 title: 'Komentar & panel siswa',
-                text: 'Klik nama siswa atau ikon komentar untuk membuka panel siswa.',
+                text: 'Klik nama siswa atau ikon mata (Detail) untuk membuka panel siswa: nilai, komentar, dan pratinjau rapor.',
             },
             {
                 anchor: 'score-import',
@@ -609,7 +609,7 @@ export const tours: Record<TourId, TourDef> = {
             {
                 anchor: 'panel-comment',
                 title: 'Komentar guru',
-                text: 'Tulis komentar sendiri; kosongkan untuk memakai komentar otomatis. Tersimpan otomatis.',
+                text: 'Tulis komentar sendiri — nama siswa ditambahkan otomatis di depan, lihat "Tercetak di rapor". Kosongkan untuk memakai komentar otomatis. Tersimpan otomatis.',
             },
             {
                 anchor: 'panel-nav',

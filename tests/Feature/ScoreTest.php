@@ -119,7 +119,7 @@ it('merges consecutive edits of one cell within 60 seconds into one log entry', 
 });
 
 it('saves the National Geographic level in grade 6 only', function () {
-    patchScore($this, 'natgeo', 'A2', 0)->assertStatus(422)
+    patchScore($this, 'natgeo', 'A2.2', 0)->assertStatus(422)
         ->assertJsonPath('errors.value.0', 'Level National Geographic hanya untuk Kelas 6.');
 
     $g6 = Classroom::create(['term_id' => $this->term->id, 'grade' => 6, 'name' => '6A']);
@@ -127,13 +127,17 @@ it('saves the National Geographic level in grade 6 only', function () {
     $url = "/kelas/{$g6->id}/skor/{$e->id}";
 
     $this->get("/kelas/{$g6->id}/nilai")->assertInertia(fn (Assert $p) => $p
-        ->where('natgeoLevels', ['Pre-A1', 'A1', 'A2', 'B1', 'B2']));
+        ->where('natgeoLevels.Pre-A1', ['Pre-A1'])
+        ->where('natgeoLevels.A2', ['A2.1', 'A2.2', 'A2.3'])
+        ->where('natgeoLevels.B2', ['B2.1', 'B2.2', 'B2.3'])
+        ->missing('natgeoLevels.C1'));
     $this->patchJson($url, ['field' => 'natgeo', 'value' => 'C1', 'version' => 0])->assertStatus(422);
-    $this->patchJson($url, ['field' => 'natgeo', 'value' => 'A2', 'version' => 0])->assertOk()->assertJsonPath('natgeo', 'A2');
+    $this->patchJson($url, ['field' => 'natgeo', 'value' => 'A2', 'version' => 0])->assertStatus(422); // category alone is not a sub-level
+    $this->patchJson($url, ['field' => 'natgeo', 'value' => 'A2.2', 'version' => 0])->assertOk()->assertJsonPath('natgeo', 'A2.2');
 
-    expect(Score::where('enrollment_id', $e->id)->value('natgeo_level'))->toBe('A2')
+    expect(Score::where('enrollment_id', $e->id)->value('natgeo_level'))->toBe('A2.2')
         ->and(ActivityLog::where('action', 'score.updated')->latest('id')->value('description'))
-        ->toBe('Level National Geographic Putri (6A) diubah – → "A2"');
+        ->toBe('Level National Geographic Putri (6A) diubah – → "A2.2"');
 });
 
 it('refuses an enrollment from another class', function () {

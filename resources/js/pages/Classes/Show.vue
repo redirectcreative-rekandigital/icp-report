@@ -32,7 +32,7 @@ import {
 import type { ScoreRow } from '@/composables/useScoreAutosave';
 import { usePageTour } from '@/composables/useTour';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { Band, Level, ScoringConfig } from '@/lib/cefr';
+import type { Band, NatgeoGroups, ScoringConfig } from '@/lib/cefr';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { TourId } from '@/tours/types';
@@ -43,7 +43,7 @@ const props = defineProps<{
     tab: 'nilai' | 'rapor' | 'riwayat';
     config?: ScoringConfig;
     comments?: Partial<Record<Band, string>>;
-    natgeoLevels?: Level[] | null;
+    natgeoLevels?: NatgeoGroups | null;
     rows?: ScoreRow[];
     history?: {
         id: number;

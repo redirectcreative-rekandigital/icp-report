@@ -11,6 +11,7 @@ use App\Models\Classroom;
 use App\Models\Enrollment;
 use App\Models\FinalResult;
 use App\Models\Term;
+use Illuminate\Support\Collection;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -54,6 +55,7 @@ class RecapExportService
             return [
                 'no' => $e->roll_no,
                 'nipd' => $e->student->nipd,
+                'nisn' => $e->student->nisn,
                 'name' => $e->student->name,
                 'raw' => $raw,
                 'comment' => $e->score?->teacher_comment,
@@ -88,8 +90,10 @@ class RecapExportService
         $this->header($summary, 3, $head);
 
         $r = 4;
+        $all = collect();
         foreach ($classes as $c) {
             $rows = collect($this->classRows($c));
+            $all = $all->merge($rows->map(fn ($x) => $x + ['natgeo_grade' => $c->usesNatGeo()]));
             $done = $rows->whereNotNull('overall_level');
             $avg = fn ($fn) => $done->count() ? round($done->avg($fn), 1) : null;
             $summary->fromArray([
@@ -100,12 +104,36 @@ class RecapExportService
                 ...array_map(fn ($s) => $avg(fn ($x) => $x['raw'][$s]), Skill::values()),
                 $avg('total'),
                 ...array_map(fn ($l) => $done->where('overall_level', $l)->count(), Band::values()),
-                ...array_map(fn ($l) => $c->usesNatGeo() ? $rows->where('natgeo', $l)->count() : null, Level::values()),
+                ...array_map(fn ($l) => $c->usesNatGeo() ? self::countCategory($rows, $l) : null, Level::values()),
             ], null, "A{$r}", true);
             $r++;
 
             $sheet = $book->createSheet();
             $this->fillClassSheet($sheet, $c);
+        }
+
+        // Band distribution per skill + total, and the grade 6 National Geographic levels, for the whole period.
+        $r += 2;
+        $summary->setCellValue("A{$r}", 'SEBARAN LEVEL PER SKILL (SEMUA KELAS)');
+        $summary->getStyle("A{$r}")->getFont()->setBold(true)->getColor()->setRGB(self::NAVY);
+        $this->header($summary, ++$r, ['Level', 'Listening', 'Reading', 'Writing', 'Speaking', 'Total']);
+        foreach (Band::values() as $l) {
+            $r++;
+            $summary->fromArray([
+                $l,
+                ...array_map(fn ($s) => $all->filter(fn ($x) => $x['level'][$s] === $l)->count(), Skill::values()),
+                $all->where('overall_level', $l)->count(),
+            ], null, "A{$r}", true);
+            $this->levelFill($summary, "A{$r}", $l);
+        }
+
+        $g6 = $all->where('natgeo_grade', true);
+        if ($g6->isNotEmpty()) {
+            $r += 2;
+            $summary->setCellValue("A{$r}", 'LEVEL NATIONAL GEOGRAPHIC (KELAS '.Classroom::NATGEO_GRADE.')');
+            $summary->getStyle("A{$r}")->getFont()->setBold(true)->getColor()->setRGB(self::NAVY);
+            $this->header($summary, ++$r, [...Level::values(), 'Belum diisi']);
+            $summary->fromArray([...array_map(fn ($l) => self::countCategory($g6, $l), Level::values()), $g6->whereNull('natgeo')->count()], null, 'A'.(++$r), true);
         }
 
         foreach (range(1, count($head)) as $i) {
@@ -130,7 +158,7 @@ class RecapExportService
         $sheet->setCellValue('A2', "Wali kelas: {$c->homeroom_teacher} • Intermediate ≥ {$config->intermediate} • Advanced ≥ {$config->advanced} (per skill, 5–25)");
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB(self::NAVY);
 
-        $head = ['No', 'NIPD', 'Nama', 'Kelas', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar guru',
+        $head = ['No', 'NIPD', 'NISN', 'Nama', 'Kelas', 'Listening', 'Reading', 'Writing', 'Speaking', 'Komentar guru',
             'Level Listening', 'Level Reading', 'Level Writing', 'Level Speaking',
             'Total', 'Level Total', 'NatGeo (CEFR)', 'Skill terkuat'];
         $this->header($sheet, 4, $head);
@@ -139,6 +167,7 @@ class RecapExportService
         foreach ($rows as $row) {
             $sheet->fromArray([$row['no']], null, "A{$r}");
             $sheet->setCellValueExplicit("B{$r}", $row['nipd'], 's');
+            $sheet->setCellValueExplicit("C{$r}", (string) $row['nisn'], 's');
             $sheet->fromArray([
                 $row['name'], $c->name,
                 ...array_values($row['raw']),
@@ -148,9 +177,9 @@ class RecapExportService
                 $row['overall_level'],
                 $c->usesNatGeo() ? $row['natgeo'] : null,
                 $row['strongest'] ? ucfirst($row['strongest']) : null,
-            ], null, "C{$r}", true);
+            ], null, "D{$r}", true);
 
-            foreach (['J', 'K', 'L', 'M', 'O'] as $i => $col) {
+            foreach (['K', 'L', 'M', 'N', 'P'] as $i => $col) {
                 $level = $i < 4 ? array_values($row['level'])[$i] : $row['overall_level'];
                 if ($level) {
                     $this->levelFill($sheet, "{$col}{$r}", $level);
@@ -160,17 +189,17 @@ class RecapExportService
         }
 
         $last = max(5, $r - 1);
-        $sheet->getStyle("N5:N{$last}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::COMPUTED);
-        $sheet->getStyle("E5:H{$last}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::INPUT);
-        $sheet->getStyle("I5:I{$last}")->getAlignment()->setWrapText(true);
-        $widths = [5, 12, 28, 7, 9, 9, 9, 9, 40, 13, 13, 13, 13, 8, 13, 13, 13];
+        $sheet->getStyle("O5:O{$last}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::COMPUTED);
+        $sheet->getStyle("F5:I{$last}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::INPUT);
+        $sheet->getStyle("J5:J{$last}")->getAlignment()->setWrapText(true);
+        $widths = [5, 9, 13, 28, 7, 9, 9, 9, 9, 40, 13, 13, 13, 13, 8, 13, 13, 13];
         foreach ($widths as $i => $w) {
             $sheet->getColumnDimensionByColumn($i + 1)->setWidth($w);
         }
-        $sheet->freezePane('D5');
+        $sheet->freezePane('E5');
 
         // Class summary (like columns W–AB of the Excel sheet).
-        $sx = 19; // S
+        $sx = 20; // T
         $done = collect($rows)->whereNotNull('overall_level');
         $cell = fn (int $col, int $row) => Coordinate::stringFromColumnIndex($col).$row;
         $sheet->setCellValue($cell($sx, 3), 'RINGKASAN KELAS');
@@ -191,9 +220,26 @@ class RecapExportService
             Skill::values(),
         ), $done->count() ? round($done->avg('total'), 1) : '-'], null, $cell($sx, $y), true);
         $sheet->fromArray(['Siswa dinilai', ...array_map(fn ($s) => collect($rows)->filter(fn ($x) => $x['raw'][$s] !== null)->count(), Skill::values()), $done->count()], null, $cell($sx, $y + 1), true);
+
+        if ($c->usesNatGeo()) {
+            $y += 3;
+            $sheet->setCellValue($cell($sx, $y), 'LEVEL NATIONAL GEOGRAPHIC');
+            $sheet->getStyle($cell($sx, $y))->getFont()->setBold(true)->getColor()->setRGB(self::NAVY);
+            $this->header($sheet, ++$y, [...Level::values(), 'Belum diisi'], $sx);
+            $sheet->fromArray([
+                ...array_map(fn ($l) => self::countCategory(collect($rows), $l), Level::values()),
+                collect($rows)->whereNull('natgeo')->count(),
+            ], null, $cell($sx, ++$y), true);
+        }
         foreach (range($sx, $sx + 5) as $col) {
             $sheet->getColumnDimensionByColumn($col)->setWidth($col === $sx ? 13 : 10);
         }
+    }
+
+    /** Students whose National Geographic sub-level falls in category $level ("A2.1" counts for A2). */
+    private static function countCategory(Collection $rows, string $level): int
+    {
+        return $rows->filter(fn ($x) => Level::ofSub($x['natgeo'] ?? null)?->value === $level)->count();
     }
 
     /** template_nilai_{kelas}.xlsx: student list, 5–25 validation, NatGeo level for grade 6 (PRD-03 §5.1). */
@@ -205,7 +251,7 @@ class RecapExportService
         $sheet = $book->getActiveSheet()->setTitle(mb_substr("Nilai {$classroom->name}", 0, 31));
 
         $sheet->setCellValue('A1', "TEMPLATE NILAI KELAS {$classroom->name} — {$classroom->term->fullLabel()}");
-        $sheet->setCellValue('A2', 'Isi skor 5–25 (boleh ,5).'.($natgeo ? ' NatGeo: Pre-A1, A1, A2, B1 atau B2.' : '')
+        $sheet->setCellValue('A2', 'Isi skor 5–25 (boleh ,5).'.($natgeo ? ' NatGeo: pilih anak level (Pre-A1, A1.1–A1.3, A2.1–A2.3, B1.1–B1.3, B2.1–B2.3).' : '')
             .' Sel kosong = nilai tidak diubah. Ketik - untuk mengosongkan (dengan opsi "Timpa"). Jangan ubah kolom NIPD.');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB(self::NAVY);
         $sheet->getStyle('A2')->getFont()->setItalic(true)->getColor()->setRGB('4B5563');
@@ -231,7 +277,7 @@ class RecapExportService
         }
         if ($natgeo) {
             $v = new DataValidation;
-            $v->setType(DataValidation::TYPE_LIST)->setFormula1('"'.implode(',', Level::values()).'"')
+            $v->setType(DataValidation::TYPE_LIST)->setFormula1('"'.implode(',', Level::subValues()).'"')
                 ->setAllowBlank(true)->setShowDropDown(true)->setShowErrorMessage(true)
                 ->setErrorTitle('Level tidak valid')->setError('Pilih Pre-A1, A1, A2, B1 atau B2.');
             $sheet->setDataValidation("I4:I{$last}", $v);

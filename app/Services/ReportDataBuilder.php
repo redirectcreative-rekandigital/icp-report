@@ -63,7 +63,7 @@ class ReportDataBuilder
             'config' => $config,
             'raw' => $raw,
             'result' => CefrCalculator::calculate($config, $raw),
-            'natgeo' => 'A2',
+            'natgeo' => 'A2.2',
             'comment' => null,
             'band_comments' => ScoreService::overallComments(),
             'level_meta' => LevelMeta::query()->orderBy('sort')->get()->toArray(),
@@ -189,6 +189,7 @@ class ReportDataBuilder
 
         // CEFR map: grade 6 only, marked at the National Geographic placement level.
         $natgeo = (int) $class['grade'] === Classroom::NATGEO_GRADE ? ($src['natgeo'] ?? null) : null;
+        $natgeoCategory = Level::ofSub($natgeo);
         $levels = [];
         foreach (Level::cases() as $l) {
             $m = $meta[$l->value] ?? [];
@@ -198,7 +199,8 @@ class ReportDataBuilder
                 'cambridge' => $m['cambridge'] ?? '',
                 'bg' => self::LEVEL_BG[$l->value],
                 'fg' => self::LEVEL_FG[$l->value],
-                'current' => $l->value === $natgeo,
+                'current' => $l === $natgeoCategory,
+                'subs' => array_map(fn ($s) => ['label' => $s, 'current' => $s === $natgeo], $l->subLevels()),
             ];
         }
         $sections['level_map'] = $sections['level_map'] && (int) $class['grade'] === Classroom::NATGEO_GRADE;
@@ -275,11 +277,15 @@ class ReportDataBuilder
                 'fg' => Band::FG[$res->overallLevel],
             ],
             'natgeo' => $natgeo,
+            // Grade 6 card left of the map: the National Geographic level, not the teacher total.
+            'natgeo_card' => ($cur = collect($levels)->firstWhere('current', true))
+                ? ['level' => $cur['level'], 'sub' => $natgeo, 'name' => $cur['short_name'], 'bg' => $cur['bg'], 'fg' => $cur['fg']]
+                : null,
             'levels' => $levels,
             'comment' => $comment,
             'place_date' => (($school['city'] ?? '') ? "{$school['city']}, " : '').($reportDate ? CarbonImmutable::parse($reportDate)->locale('en')->translatedFormat('j F Y') : '.............................'),
             'signatures' => $signatures,
-            'chart' => $sections['radar'] ? $this->chart->render(array_values($src['raw']), array_column($skills, 'bg'), $layout['theme']['primary']) : null,
+            'chart' => $sections['radar'] ? $this->chart->render(array_values($src['raw']), array_column($skills, 'bg'), $layout['theme']['primary'], 420, 240) : null,
             'finalized_at' => $src['finalized_at']?->toIso8601String(),
             // Auto-shrink long texts so the page stays one page (PRD-05 §6, §8).
             'fs' => [

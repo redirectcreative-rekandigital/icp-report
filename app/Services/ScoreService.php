@@ -140,8 +140,8 @@ class ScoreService
             if ($value === null || $value === '') {
                 return null;
             }
-            if (! in_array($value, Level::values(), true)) {
-                throw ValidationException::withMessages(['value' => 'Level harus salah satu dari '.implode(', ', Level::values()).'.']);
+            if (! in_array($value, Level::subValues(), true)) {
+                throw ValidationException::withMessages(['value' => 'Level harus salah satu dari '.implode(', ', Level::subValues()).'.']);
             }
 
             return $value;

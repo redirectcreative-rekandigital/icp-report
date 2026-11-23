@@ -7,7 +7,7 @@ import {
     FileUp,
     Info,
     Lock,
-    MessageSquare,
+    Eye,
     Search,
     Undo2,
     Users,
@@ -22,6 +22,7 @@ import ResponsiveDialog from '@/components/app/ResponsiveDialog.vue';
 import SaveIndicator from '@/components/app/SaveIndicator.vue';
 import ScoreCell from '@/components/app/ScoreCell.vue';
 import FinalizeDialog from '@/components/scores/FinalizeDialog.vue';
+import NatgeoOptions from '@/components/scores/NatgeoOptions.vue';
 import ScoreMobile from '@/components/scores/ScoreMobile.vue';
 import StudentPanel from '@/components/scores/StudentPanel.vue';
 import type { GridProps } from '@/components/scores/types';
@@ -44,7 +45,7 @@ import {
     SKILL_LABEL,
     SKILLS,
 } from '@/lib/cefr';
-import type { Band, Level, Skill } from '@/lib/cefr';
+import type { Band, NatgeoLevel, Skill } from '@/lib/cefr';
 import { clone } from '@/lib/clone';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -121,6 +122,9 @@ function isComplete(row: ScoreRow): boolean {
         (!props.natgeoLevels || row.natgeo !== null)
     );
 }
+
+/** Opaque zebra stripes (sticky columns must not be see-through). */
+const rowBg = (ri: number) => (ri % 2 ? 'bg-zebra' : 'bg-card');
 
 /* ---------- filters & summary ---------- */
 const q = ref('');
@@ -514,6 +518,7 @@ defineExpose({ pendingCount: autosave.pendingCount });
             :results="results"
             :natgeo="!!natgeoLevels"
             :locked="locked"
+            :comments="comments"
             @open="openPanel"
         />
 
@@ -534,6 +539,13 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                 class="sticky left-10 z-20 min-w-48 border-r bg-muted px-2 py-2 text-left"
                             >
                                 Nama (NIPD)
+                            </th>
+                            <th
+                                v-if="natgeoLevels"
+                                class="w-28 px-2 py-2"
+                                title="Hasil tes National Geographic (CEFR)"
+                            >
+                                NatGeo
                             </th>
                             <th
                                 v-for="s in SKILLS"
@@ -562,20 +574,18 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                 class="w-24 bg-input-computed px-2 py-2"
                             >
                                 Total
+                                <span class="block font-normal"
+                                    >20–{{ SCORE_MAX * 4 }}</span
+                                >
                             </th>
-                            <th
-                                v-if="natgeoLevels"
-                                class="w-28 px-2 py-2"
-                                title="Hasil tes National Geographic (CEFR)"
-                            >
-                                NatGeo
+                            <th class="w-28 bg-input-computed px-2 py-2">
+                                Level Total
                             </th>
                             <th
                                 data-tour="score-comment"
-                                class="w-10 px-1 py-2"
+                                class="w-16 px-1 py-2"
                             >
-                                <span class="sr-only">Komentar</span
-                                ><MessageSquare class="mx-auto size-4" />
+                                Detail
                             </th>
                         </tr>
                     </thead>
@@ -587,12 +597,22 @@ defineExpose({ pendingCount: autosave.pendingCount });
                             :class="!row.is_active && 'opacity-60'"
                         >
                             <td
-                                class="sticky left-0 z-[1] border-b bg-card px-2 py-1 text-muted-foreground tabular-nums group-hover:bg-muted/50"
+                                :class="
+                                    cn(
+                                        'sticky left-0 z-[1] border-b px-2 py-1 text-muted-foreground tabular-nums group-hover:bg-muted',
+                                        rowBg(ri),
+                                    )
+                                "
                             >
                                 {{ row.roll_no }}
                             </td>
                             <td
-                                class="sticky left-10 z-[1] max-w-64 border-r border-b bg-card px-2 py-1 group-hover:bg-muted/50"
+                                :class="
+                                    cn(
+                                        'sticky left-10 z-[1] max-w-64 border-r border-b px-2 py-1 group-hover:bg-muted',
+                                        rowBg(ri),
+                                    )
+                                "
                             >
                                 <button
                                     type="button"
@@ -608,15 +628,53 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                         row.is_active ? '' : ' • nonaktif'
                                     }}</span
                                 >
+                                <span
+                                    v-if="!isComplete(row) && !locked"
+                                    class="ml-1.5 rounded-full bg-tag px-1.5 py-px text-[10px] font-semibold text-tag-foreground"
+                                    >belum lengkap</span
+                                >
+                            </td>
+                            <td
+                                v-if="natgeoLevels"
+                                :class="cn('border-b px-1 py-1', rowBg(ri))"
+                            >
+                                <NativeSelect
+                                    :model-value="row.natgeo ?? ''"
+                                    :disabled="locked"
+                                    :aria-label="`Level National Geographic, ${row.name}`"
+                                    :invalid="
+                                        !!autosave.cells[
+                                            `${row.enrollment_id}:natgeo`
+                                        ]
+                                    "
+                                    :missing="!row.natgeo && !locked"
+                                    :title="
+                                        autosave.cells[
+                                            `${row.enrollment_id}:natgeo`
+                                        ]?.message
+                                    "
+                                    @update:model-value="
+                                        (v) =>
+                                            setScore(
+                                                row,
+                                                'natgeo',
+                                                (v ||
+                                                    null) as NatgeoLevel | null,
+                                            )
+                                    "
+                                >
+                                    <NatgeoOptions :groups="natgeoLevels" />
+                                </NativeSelect>
                             </td>
                             <td
                                 v-for="(s, ci) in SKILLS"
                                 :key="s"
-                                class="border-b px-1 py-1"
+                                :class="cn('border-b px-1 py-1', rowBg(ri))"
                             >
                                 <ScoreCell
                                     :model-value="row.scores[s]"
                                     :locked="locked"
+                                    missing
                                     :saving="
                                         autosave.cells[
                                             `${row.enrollment_id}:${s}`
@@ -653,6 +711,31 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                 />
                             </td>
                             <td
+                                class="border-b bg-input-computed/60 px-2 py-1 text-center text-base font-bold whitespace-nowrap tabular-nums"
+                            >
+                                <template
+                                    v-if="
+                                        results.get(row.enrollment_id)!
+                                            .total !== null
+                                    "
+                                    >{{
+                                        formatScore(
+                                            results.get(row.enrollment_id)!
+                                                .total,
+                                        )
+                                    }}<span
+                                        class="text-xs font-normal text-muted-foreground"
+                                    >
+                                        / {{ SCORE_MAX * 4 }}</span
+                                    ></template
+                                >
+                                <span
+                                    v-else
+                                    class="font-normal text-muted-foreground"
+                                    >–</span
+                                >
+                            </td>
+                            <td
                                 class="border-b bg-input-computed/60 px-2 py-1 text-center"
                             >
                                 <LevelBadge
@@ -661,82 +744,30 @@ defineExpose({ pendingCount: autosave.pendingCount });
                                             .overall_level
                                     "
                                 />
-                                <span
-                                    v-if="
-                                        results.get(row.enrollment_id)!
-                                            .total !== null
-                                    "
-                                    class="mt-0.5 block text-[11px] font-semibold tabular-nums"
-                                >
-                                    {{
-                                        formatScore(
-                                            results.get(row.enrollment_id)!
-                                                .total,
-                                        )
-                                    }}
-                                </span>
                             </td>
-                            <td v-if="natgeoLevels" class="border-b px-1 py-1">
-                                <NativeSelect
-                                    :model-value="row.natgeo ?? ''"
-                                    :disabled="locked"
-                                    :aria-label="`Level National Geographic, ${row.name}`"
-                                    :invalid="
-                                        !!autosave.cells[
-                                            `${row.enrollment_id}:natgeo`
-                                        ]
-                                    "
-                                    :title="
-                                        autosave.cells[
-                                            `${row.enrollment_id}:natgeo`
-                                        ]?.message
-                                    "
-                                    @update:model-value="
-                                        (v) =>
-                                            setScore(
-                                                row,
-                                                'natgeo',
-                                                (v || null) as Level | null,
-                                            )
-                                    "
-                                >
-                                    <option value="">–</option>
-                                    <option
-                                        v-for="l in natgeoLevels"
-                                        :key="l"
-                                        :value="l"
-                                    >
-                                        {{ l }}
-                                    </option>
-                                </NativeSelect>
-                            </td>
-                            <td class="border-b px-1 py-1 text-center">
+                            <td
+                                :class="
+                                    cn(
+                                        'border-b px-1 py-1 text-center',
+                                        rowBg(ri),
+                                    )
+                                "
+                            >
                                 <button
                                     type="button"
                                     tabindex="-1"
-                                    :aria-label="`Komentar ${row.name}`"
-                                    :title="
-                                        row.comment
-                                            ? 'Komentar guru'
-                                            : 'Komentar otomatis'
-                                    "
-                                    class="inline-flex size-8 items-center justify-center rounded-md hover:bg-muted"
+                                    :aria-label="`Lihat detail ${row.name}`"
+                                    :title="`Lihat detail & komentar ${row.name}`"
+                                    class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
                                     @click="openPanel(row)"
                                 >
-                                    <span
-                                        :class="
-                                            cn(
-                                                'size-2.5 rounded-full border-2 border-primary',
-                                                row.comment && 'bg-primary',
-                                            )
-                                        "
-                                    />
+                                    <Eye class="size-4" />
                                 </button>
                             </td>
                         </tr>
                         <tr v-if="!visible.length">
                             <td
-                                colspan="15"
+                                colspan="16"
                                 class="py-8 text-center text-muted-foreground"
                             >
                                 Tidak ada siswa yang cocok.

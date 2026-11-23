@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Installer — ICP CEFR Report</title>
+    <title>Installer — ICP Report</title>
     <style>
         * { box-sizing: border-box; }
         body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #1F3A68; color: #111827; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
@@ -25,7 +25,7 @@
 </head>
 <body>
 <div class="card">
-    <h1>ICP CEFR Report — Installer</h1>
+    <h1>ICP Report — Installer</h1>
     <p>{{ $installed ? 'Aplikasi sudah terpasang. Halaman ini hanya untuk memperbarui struktur database setelah mengunggah versi baru.' : 'Memasang tabel database dan data awal (level CEFR & deskriptor). Jalankan sekali saja.' }}</p>
 
     <ul>

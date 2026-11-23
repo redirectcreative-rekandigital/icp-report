@@ -25,7 +25,7 @@ class SpreadsheetExportService
         $book = new Spreadsheet;
         $sheet = $book->getActiveSheet()->setTitle('Siswa');
 
-        $sheet->setCellValue('A1', 'TEMPLATE IMPOR SISWA — ICP CEFR Report');
+        $sheet->setCellValue('A1', 'TEMPLATE IMPOR SISWA — ICP Report');
         $sheet->setCellValue('A2', 'Isi mulai baris 4. Kolom bertanda * wajib. Kelas harus sudah ada di periode aktif'
             .($term ? ' ('.$term->fullLabel().')' : '').'. L/P: L atau P.');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB(self::NAVY);

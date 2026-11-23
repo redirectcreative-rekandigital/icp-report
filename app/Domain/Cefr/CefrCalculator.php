@@ -72,7 +72,7 @@ final class CefrCalculator
         $teacherComment = trim((string) $teacherComment);
 
         if ($teacherComment !== '') {
-            return $teacherComment;
+            return self::withName($studentName, $teacherComment);
         }
 
         if ($result->overallLevel === null) {
@@ -86,5 +86,34 @@ final class CefrCalculator
         }
 
         return $text;
+    }
+
+    /** Words kept capitalised when they open a teacher comment. */
+    public const KEEP_CAPITAL = ['English', 'Indonesian', 'Mr', 'Mrs', 'Ms', 'Miss'];
+
+    /**
+     * The teacher's own comment is printed after the student's full name (revisi 23-11-2026):
+     * "shows great effort." → "Kevin Wijaya shows great effort.". Left as is when it already
+     * starts with the full or first name; the first word is lower-cased unless it is "I",
+     * an acronym (ICP) or a word that is always capitalised (English).
+     */
+    public static function withName(string $studentName, string $comment): string
+    {
+        $name = trim((string) preg_replace('/\s+/u', ' ', $studentName));
+        if ($name === '') {
+            return $comment;
+        }
+
+        foreach (array_unique([$name, explode(' ', $name)[0]]) as $n) {
+            if (preg_match('/^'.preg_quote($n, '/').'(?!\p{L})/iu', $comment)) {
+                return $comment;
+            }
+        }
+
+        if (preg_match('/^(\p{Lu}\p{Ll}*)/u', $comment, $m) && mb_strlen($m[1]) > 1 && ! in_array($m[1], self::KEEP_CAPITAL, true)) {
+            $comment = mb_strtolower(mb_substr($comment, 0, 1)).mb_substr($comment, 1);
+        }
+
+        return "{$name} {$comment}";
     }
 }

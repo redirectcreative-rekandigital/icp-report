@@ -1,4 +1,4 @@
-# ICP CEFR Report — SD Muhammadiyah Wonorejo
+# ICP Report — SD Muhammadiyah Wonorejo
 
 Aplikasi web rapor kemampuan bahasa Inggris berbasis CEFR (pengganti `ICP_English_Progress_Report.xlsx`).
 Spesifikasi lengkap: [`docs/prd/`](docs/prd/00-overview.md). File Excel sumber: `docs/source/`.

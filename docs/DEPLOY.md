@@ -13,7 +13,7 @@ npm run build                 # menghasilkan public/build
 Siapkan file `.env` untuk produksi (salin dari `.env.example`):
 
 ```dotenv
-APP_NAME="ICP CEFR Report"
+APP_NAME="ICP Report"
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://rapor.namasekolah.sch.id

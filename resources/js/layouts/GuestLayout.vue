@@ -30,7 +30,7 @@ const page = usePage();
                         {{ page.props.school.name }}
                     </p>
                     <p class="text-sm text-sidebar-muted">
-                        ICP CEFR Report • {{ page.props.school.program }}
+                        ICP Report • {{ page.props.school.program }}
                     </p>
                 </div>
             </div>

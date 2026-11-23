@@ -83,11 +83,20 @@ function mountGrid(status: 'draft' | 'final' = 'draft', grade = 5) {
             total: 2,
         },
         config: { min: 5, max: 25, ...fixture.defaults },
-        comments: {},
-        natgeoLevels: grade === 6 ? ['Pre-A1', 'A1', 'A2', 'B1', 'B2'] : null,
+        comments: { Intermediate: 'can understand everyday English.' },
+        natgeoLevels:
+            grade === 6
+                ? {
+                      'Pre-A1': ['Pre-A1'],
+                      A1: ['A1.1', 'A1.2', 'A1.3'],
+                      A2: ['A2.1', 'A2.2', 'A2.3'],
+                      B1: ['B1.1', 'B1.2', 'B1.3'],
+                      B2: ['B2.1', 'B2.2', 'B2.3'],
+                  }
+                : null,
         rows: [
             row(1, 'Kevin Wijaya', [15, 17, 11, 13]),
-            row(2, 'Wulan Sari', [null, null, null, null]),
+            row(2, 'Wulan Sari', [null, null, null, null], 'Reads well.'),
         ],
     });
 
@@ -127,11 +136,43 @@ describe('ScoresTab (Input Nilai)', () => {
         expect(w.text()).not.toContain('NatGeo');
     });
 
+    it('splits total and level, opens details with the eye button, stripes rows and marks incomplete students', () => {
+        const w = mountGrid();
+        const head = w.find('thead').text();
+        const [kevin, wulan] = w.findAll('tbody tr');
+
+        expect(head).toContain('Level Total');
+        expect(head).toContain('Detail');
+        expect(kevin.text()).toContain('56 / 100');
+        // The comment text is no longer in the grid: an eye button opens the detail panel.
+        expect(wulan.text()).not.toContain('Reads well.');
+        expect(
+            kevin
+                .find('button[aria-label="Lihat detail Kevin Wijaya"]')
+                .exists(),
+        ).toBe(true);
+        expect(wulan.text()).toContain('belum lengkap');
+        expect(kevin.text()).not.toContain('belum lengkap');
+        expect(wulan.find('input[data-cell]').classes()).toContain(
+            'border-dashed',
+        );
+        expect(kevin.find('td').classes()).toContain('bg-card');
+        expect(wulan.find('td').classes()).toContain('bg-zebra');
+    });
+
     it('grade 6: shows the NatGeo column and counts it for completeness', () => {
         const w = mountGrid('draft', 6);
 
         expect(w.text()).toContain('NatGeo');
         expect(w.findAll('tbody select')).toHaveLength(2);
+        expect(w.findAll('thead th')[2].text()).toContain('NatGeo'); // right after the name
+        expect(w.find('tbody select option').text()).toBe('Belum diisi');
+        // Sub-levels grouped per category; Pre-A1 stands alone.
+        const select = w.find('tbody select');
+        expect(
+            select.findAll('optgroup').map((g) => g.attributes('label')),
+        ).toEqual(['A1', 'A2', 'B1', 'B2']);
+        expect(select.findAll('option').map((o) => o.text())).toHaveLength(14); // Belum diisi + 13
         expect(w.text()).toContain('0/2'); // Kevin has 4 scores but no NatGeo level yet
     });
 

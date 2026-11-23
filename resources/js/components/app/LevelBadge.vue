@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type { Band, Level } from '@/lib/cefr';
+import type { Band, Level, NatgeoLevel } from '@/lib/cefr';
 import { cn } from '@/lib/utils';
 
-/** Band (Beginner/Intermediate/Advanced) or CEFR level pill, always with the name as text (PRD-07 §2.2, §5.2). */
+/**
+ * Band (Beginner/Intermediate/Advanced), CEFR level or National Geographic sub-level (A2.2, coloured
+ * as its category) pill, always with the name as text (PRD-07 §2.2, §5.2).
+ */
 const props = withDefaults(
     defineProps<{
-        level: Band | Level | null;
+        level: Band | Level | NatgeoLevel | null;
         size?: 'sm' | 'md' | 'lg' | 'xl';
     }>(),
     {
@@ -51,7 +54,7 @@ watch(
                     size === 'lg' && 'h-8 min-w-16 px-3 text-sm',
                     size === 'xl' && 'h-14 min-w-24 px-4 text-2xl',
                     level
-                        ? COLORS[level]
+                        ? COLORS[level.split('.')[0] as Band | Level]
                         : 'border border-dashed border-muted-foreground/40 text-muted-foreground',
                     pop && 'animate-level-pop',
                 )

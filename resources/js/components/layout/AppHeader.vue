@@ -36,7 +36,7 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
 });
 
 const mobileTitle = () =>
-    props.title ?? props.breadcrumbs.at(-1)?.title ?? 'ICP CEFR Report';
+    props.title ?? props.breadcrumbs.at(-1)?.title ?? 'ICP Report';
 </script>
 
 <template>

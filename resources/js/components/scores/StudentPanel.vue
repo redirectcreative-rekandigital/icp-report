@@ -14,6 +14,7 @@ import NativeSelect from '@/components/app/NativeSelect.vue';
 import ScoreCell from '@/components/app/ScoreCell.vue';
 import SkillLine from '@/components/app/SkillLine.vue';
 import TourIconButton from '@/components/app/TourIconButton.vue';
+import NatgeoOptions from '@/components/scores/NatgeoOptions.vue';
 import type { ClassInfo } from '@/components/scores/types';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -33,14 +34,20 @@ import {
     SCORE_MAX,
     SKILL_LABEL,
     SKILLS,
+    withName,
 } from '@/lib/cefr';
-import type { Band, Level, StudentResult } from '@/lib/cefr';
+import type {
+    Band,
+    NatgeoGroups,
+    NatgeoLevel,
+    StudentResult,
+} from '@/lib/cefr';
 
 const props = defineProps<{
     row: ScoreRow | null;
     result: StudentResult | null;
     comments: Partial<Record<Band, string>>;
-    natgeoLevels: Level[] | null;
+    natgeoLevels: NatgeoGroups | null;
     classroom: ClassInfo;
     locked: boolean;
     cells: Record<string, { status: string; message?: string }>;
@@ -80,6 +87,12 @@ const auto = computed(() =>
 );
 
 const comment = ref('');
+/** What the report prints for the teacher's own comment: the student's name comes first. */
+const printed = computed(() =>
+    props.row && comment.value.trim()
+        ? withName(props.row.name, comment.value.trim())
+        : null,
+);
 watch(
     () => props.row?.enrollment_id,
     () => {
@@ -214,18 +227,11 @@ const cellState = (field: Field) =>
                                         emit(
                                             'set',
                                             'natgeo',
-                                            (v || null) as Level | null,
+                                            (v || null) as NatgeoLevel | null,
                                         )
                                 "
                             >
-                                <option value="">–</option>
-                                <option
-                                    v-for="l in natgeoLevels"
-                                    :key="l"
-                                    :value="l"
-                                >
-                                    {{ l }}
-                                </option>
+                                <NatgeoOptions :groups="natgeoLevels" />
                             </NativeSelect>
                             <span class="text-xs text-muted-foreground"
                                 >Hasil tes National Geographic (CEFR)</span
@@ -289,10 +295,22 @@ const cellState = (field: Field) =>
                             rows="5"
                             maxlength="600"
                             :readonly="locked"
-                            placeholder="Kosongkan untuk memakai komentar otomatis."
+                            placeholder="Nama siswa ditambahkan otomatis di depan. Tulis lanjutannya, mis. shows great effort in speaking. Kosongkan untuk memakai komentar otomatis."
                             data-tour="panel-comment"
                             @update:model-value="onComment"
                         />
+                        <div
+                            v-if="printed"
+                            class="rounded-lg border bg-card p-3 text-sm"
+                            data-tour="panel-printed"
+                        >
+                            <p
+                                class="mb-1 text-xs font-semibold text-muted-foreground uppercase"
+                            >
+                                Tercetak di rapor
+                            </p>
+                            <p>{{ printed }}</p>
+                        </div>
                         <div class="flex items-center justify-between gap-2">
                             <Button
                                 v-if="!locked"

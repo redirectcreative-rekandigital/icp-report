@@ -61,15 +61,17 @@ it('imports the National Geographic level for grade 6 only', function () {
     $c6a = Classroom::where(['term_id' => $this->term->id, 'name' => '6A'])->first();
     $sheet = readXlsx($this->get("/impor/template/nilai/{$c6a->id}")->streamedContent())->getActiveSheet();
     expect($sheet->getCell('I3')->getValue())->toBe('NatGeo')
-        ->and($sheet->getCell('I4')->getValue())->toBe('A2');
+        ->and($sheet->getCell('I4')->getValue())->toBe('A2.2')
+        ->and($sheet->getDataValidation('I4')->getFormula1())->toBe('"Pre-A1,A1.1,A1.2,A1.3,A2.1,A2.2,A2.3,B1.1,B1.2,B1.3,B2.1,B2.2,B2.3"');
 
-    $rows = [['NIPD', 'NatGeo'], ['6001', 'b1'], ['6002', 'C1']];
+    $rows = [['NIPD', 'NatGeo'], ['6001', 'b1.2'], ['6002', 'C1'], ['6003', 'A2']];
     $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload($rows), 'classroom_id' => $c6a->id, 'overwrite' => true]);
     $this->get('/impor')->assertInertia(fn (Assert $p) => $p
-        ->where('preview.rows.0.changes', ['NatGeo "A2" → "B1"'])
-        ->where('preview.rows.1.messages.0', "Baris 3: NatGeo 'C1' harus Pre-A1, A1, A2, B1 atau B2."));
+        ->where('preview.rows.0.changes', ['NatGeo "A2.2" → "B1.2"'])
+        ->where('preview.rows.1.messages.0', "Baris 3: NatGeo 'C1' harus salah satu dari Pre-A1, A1.1, A1.2, A1.3, A2.1, A2.2, A2.3, B1.1, B1.2, B1.3, B2.1, B2.2, B2.3.")
+        ->where('preview.rows.2.messages.0', "Baris 4: NatGeo 'A2' harus berupa anak level, mis. A2.1, A2.2, A2.3."));
     $this->post('/impor/simpan')->assertSessionHas('success');
-    expect(scoreOf('6001')->natgeo_level)->toBe('B1');
+    expect(scoreOf('6001')->natgeo_level)->toBe('B1.2');
 
     $this->post('/impor/nilai/pratinjau', ['file' => sheetUpload([['NIPD', 'NatGeo'], ['5001', 'A2']]), 'classroom_id' => $this->c5a->id]);
     $this->get('/impor')->assertInertia(fn (Assert $p) => $p
@@ -166,14 +168,16 @@ it('exports the class recap like the Excel Grade sheet, marked DRAFT', function 
     $sheet = readXlsx($res->streamedContent())->getActiveSheet();
 
     expect($sheet->getTitle())->toBe('5A (DRAFT)')
-        ->and($sheet->getCell('C5')->getValue())->toBe('Kevin Wijaya')
-        ->and($sheet->getCell('K5')->getValue())->toBe('Intermediate') // Reading 17
-        ->and($sheet->getCell('L5')->getValue())->toBe('Beginner')     // Writing 11
-        ->and($sheet->getCell('N5')->getValue())->toEqual(56)          // total
-        ->and($sheet->getCell('O5')->getValue())->toBe('Intermediate')
-        ->and($sheet->getCell('P5')->getValue())->toBeNull()           // NatGeo: grade 6 only
-        ->and($sheet->getCell('Q5')->getValue())->toBe('Reading')
-        ->and($sheet->getStyle('O5')->getFill()->getStartColor()->getRGB())->toBe('F2C230');
+        ->and($sheet->getCell('B5')->getValue())->toBe('5001')
+        ->and($sheet->getCell('C5')->getValue())->toBe('0100005001')    // NISN, kept as text
+        ->and($sheet->getCell('D5')->getValue())->toBe('Kevin Wijaya')
+        ->and($sheet->getCell('L5')->getValue())->toBe('Intermediate') // Reading 17
+        ->and($sheet->getCell('M5')->getValue())->toBe('Beginner')     // Writing 11
+        ->and($sheet->getCell('O5')->getValue())->toEqual(56)          // total
+        ->and($sheet->getCell('P5')->getValue())->toBe('Intermediate')
+        ->and($sheet->getCell('Q5')->getValue())->toBeNull()           // NatGeo: grade 6 only
+        ->and($sheet->getCell('R5')->getValue())->toBe('Reading')
+        ->and($sheet->getStyle('P5')->getFill()->getStartColor()->getRGB())->toBe('F2C230');
 });
 
 it('exports the period recap with a summary sheet and one sheet per class', function () {
@@ -183,4 +187,16 @@ it('exports the period recap with a summary sheet and one sheet per class', func
     expect($book->getSheetCount())->toBe(9)
         ->and($book->getSheet(0)->getTitle())->toBe('Ringkasan')
         ->and($book->getSheet(0)->getCell('A4')->getValue())->toBe('3A (DRAFT)');
+
+    // Below the class table: band distribution per skill + total, then the grade 6 National Geographic levels.
+    $sum = $book->getSheet(0);
+    expect($sum->getCell('A14')->getValue())->toBe('SEBARAN LEVEL PER SKILL (SEMUA KELAS)')
+        ->and($sum->getCell('A16')->getValue())->toBe('Beginner')
+        ->and($sum->getCell('F16')->getValue() + $sum->getCell('F17')->getValue() + $sum->getCell('F18')->getValue())->toBe(20)
+        ->and($sum->getCell('A20')->getValue())->toBe('LEVEL NATIONAL GEOGRAPHIC (KELAS 6)')
+        ->and(array_sum($sum->rangeToArray('A22:F22')[0]))->toEqual(5);
+
+    $g6 = $book->getSheetByName('6A (DRAFT)');
+    expect($g6->getCell('T11')->getValue())->toBe('LEVEL NATIONAL GEOGRAPHIC')
+        ->and($g6->getCell('T12')->getValue())->toBe('Pre-A1');
 });

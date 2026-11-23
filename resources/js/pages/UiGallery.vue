@@ -61,9 +61,6 @@ const now = Date.now();
                     <div class="flex flex-wrap gap-2">
                         <StatusBadge
                             v-for="s in [
-                                'below',
-                                'meeting',
-                                'above',
                                 'incomplete',
                                 'draft',
                                 'final',

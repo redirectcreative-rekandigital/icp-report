@@ -23,6 +23,8 @@ const props = withDefaults(
         label: string;
         cell?: string; // "row:col" for keyboard navigation
         large?: boolean;
+        /** Dashed gold outline while empty: the student is still incomplete. */
+        missing?: boolean;
     }>(),
     {
         locked: false,
@@ -30,6 +32,7 @@ const props = withDefaults(
         serverError: null,
         cell: undefined,
         large: false,
+        missing: false,
     },
 );
 
@@ -152,6 +155,10 @@ defineExpose({ focus: () => input.value?.focus() });
                             locked
                                 ? 'cursor-default border-transparent bg-input-computed text-foreground'
                                 : 'border-transparent bg-input-editable hover:border-gold/60 focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/30',
+                            missing &&
+                                !locked &&
+                                draft === '' &&
+                                'border-dashed border-gold',
                             (invalid || serverError) &&
                                 'border-destructive bg-status-below focus:border-destructive focus:ring-destructive/30',
                         )

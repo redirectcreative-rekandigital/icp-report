@@ -95,7 +95,7 @@ it('rejects a ZIP that is not an ICP backup', function () {
     $zip->close();
 
     $this->withPinSession()->post('/pengaturan/cadangan/pulihkan', ['file' => new UploadedFile($path, 'x.zip', 'application/zip', null, true), 'confirm' => 'PULIHKAN'])
-        ->assertSessionHas('error', 'File ini bukan cadangan ICP CEFR Report.');
+        ->assertSessionHas('error', 'File ini bukan cadangan ICP Report.');
 });
 
 /* ---------------- Installer ---------------- */

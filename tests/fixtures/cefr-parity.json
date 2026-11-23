@@ -20,5 +20,16 @@
           "expected": { "level": { "listening": "Intermediate", "reading": null, "writing": "Advanced", "speaking": null }, "total": null, "overall_level": null, "strongest": null } },
         { "name": "custom thresholds", "override": { "intermediate": 15, "advanced": 22.5 }, "scores": { "listening": 14.5, "reading": 15, "writing": 22.5, "speaking": 22 },
           "expected": { "level": { "listening": "Beginner", "reading": "Intermediate", "writing": "Advanced", "speaking": "Intermediate" }, "total": 74, "overall_level": "Intermediate", "strongest": "writing" } }
+    ],
+    "teacher_comments": [
+        { "name": "name added, first word lower-cased", "student": "Kevin Wijaya", "comment": "Shows great effort in speaking.", "expected": "Kevin Wijaya shows great effort in speaking." },
+        { "name": "already lower-case", "student": "Kevin Wijaya", "comment": "reads fluently.", "expected": "Kevin Wijaya reads fluently." },
+        { "name": "starts with the full name", "student": "Kevin Wijaya", "comment": "Kevin Wijaya is a keen reader.", "expected": "Kevin Wijaya is a keen reader." },
+        { "name": "starts with the first name, any case", "student": "Kevin Wijaya", "comment": "kevin is a keen reader.", "expected": "kevin is a keen reader." },
+        { "name": "first name only as a prefix of another word", "student": "Ana Putri", "comment": "Analyses texts well.", "expected": "Ana Putri analyses texts well." },
+        { "name": "keeps I", "student": "Kevin Wijaya", "comment": "I am proud of his progress.", "expected": "Kevin Wijaya I am proud of his progress." },
+        { "name": "keeps acronyms", "student": "Kevin Wijaya", "comment": "ICP has helped a lot.", "expected": "Kevin Wijaya ICP has helped a lot." },
+        { "name": "keeps English", "student": "Kevin Wijaya", "comment": "English speaking improved.", "expected": "Kevin Wijaya English speaking improved." },
+        { "name": "extra spaces in the name", "student": "  Kevin   Wijaya ", "comment": "Works hard.", "expected": "Kevin Wijaya works hard." }
     ]
 }

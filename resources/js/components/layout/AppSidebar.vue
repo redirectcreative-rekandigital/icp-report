@@ -43,7 +43,7 @@ const items = computed(() =>
                             <div class="grid flex-1 text-left leading-tight">
                                 <span
                                     class="truncate text-[15px] font-extrabold text-white"
-                                    >ICP CEFR Report</span
+                                    >ICP Report</span
                                 >
                                 <span
                                     class="truncate text-xs text-sidebar-muted"

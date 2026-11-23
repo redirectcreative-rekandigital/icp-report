@@ -38,6 +38,7 @@
 
     --input-editable: #fff8e1;
     --input-computed: #f3f4f6;
+    --zebra: #f7f8fa; /* opaque, so sticky cells stay solid */
     --kpi-icon-bg: #e8eef8;
     --tag: #fff4d6;
     --tag-foreground: #7a5300;
@@ -138,6 +139,7 @@
     --color-ring: var(--ring);
     --color-input-editable: var(--input-editable);
     --color-input-computed: var(--input-computed);
+    --color-zebra: var(--zebra);
     --color-kpi-icon: var(--kpi-icon-bg);
     --color-tag: var(--tag);
     --color-tag-foreground: var(--tag-foreground);

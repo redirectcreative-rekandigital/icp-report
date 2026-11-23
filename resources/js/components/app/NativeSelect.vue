@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 /** Native <select> styled like the inputs: reliable keyboard & phone pickers. */
 defineOptions({ inheritAttrs: false });
 const model = defineModel<string | number | null>();
-defineProps<{ class?: string; invalid?: boolean }>();
+defineProps<{ class?: string; invalid?: boolean; missing?: boolean }>();
 </script>
 
 <template>
@@ -13,7 +13,12 @@ defineProps<{ class?: string; invalid?: boolean }>();
         <select
             v-model="model"
             :aria-invalid="invalid || undefined"
-            class="h-9 w-full appearance-none rounded-md border border-input bg-card pr-8 pl-3 text-sm shadow-xs transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:border-destructive"
+            :class="
+                cn(
+                    'h-9 w-full appearance-none rounded-md border border-input bg-card pr-8 pl-3 text-sm shadow-xs transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:border-destructive',
+                    missing && 'border-dashed border-gold',
+                )
+            "
             v-bind="$attrs"
         >
             <slot />

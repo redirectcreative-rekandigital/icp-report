@@ -2,7 +2,7 @@ import { useEventListener, useOnline } from '@vueuse/core';
 import type { Ref } from 'vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { requestSessionPin } from '@/composables/usePinConfirm';
-import type { Level, Skill } from '@/lib/cefr';
+import type { NatgeoLevel, Skill } from '@/lib/cefr';
 import { ApiError, http } from '@/lib/http';
 
 /**
@@ -21,13 +21,13 @@ export type ScoreRow = {
     name: string;
     is_active: boolean;
     scores: Record<Skill, number | null>;
-    natgeo: Level | null;
+    natgeo: NatgeoLevel | null;
     comment: string | null;
     version: number;
 };
 type Current = {
     scores: Record<Skill, number | null>;
-    natgeo: Level | null;
+    natgeo: NatgeoLevel | null;
     comment: string | null;
     version: number;
 };
@@ -44,7 +44,7 @@ export function assignField(row: Current, field: Field, value: unknown): void {
     if (field === 'comment') {
         row.comment = value as string | null;
     } else if (field === 'natgeo') {
-        row.natgeo = value as Level | null;
+        row.natgeo = value as NatgeoLevel | null;
     } else {
         row.scores[field] = value as number | null;
     }

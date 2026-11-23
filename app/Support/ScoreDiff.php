@@ -10,7 +10,7 @@ use App\Models\Score;
  * Compares file values with stored scores (PRD-03 §5.2–5.3):
  * blank = keep; "-" = clear (only with "Timpa"); existing different values are only replaced
  * with "Timpa"; numbers accept "12,5"/"12.5", must be 5–25 and whole or .5;
- * natgeo (grade 6 only) must be Pre-A1, A1, A2, B1 or B2.
+ * natgeo (grade 6 only) must be a National Geographic sub-level: Pre-A1, A1.1 … B2.3.
  */
 class ScoreDiff
 {
@@ -64,9 +64,13 @@ class ScoreDiff
             }
 
             if ($field === 'natgeo') {
-                $new = collect(Level::values())->first(fn ($l) => strcasecmp($l, str_replace(' ', '-', $text)) === 0);
+                $norm = str_replace(' ', '-', $text);
+                $new = collect(Level::subValues())->first(fn ($l) => strcasecmp($l, $norm) === 0);
                 if ($new === null) {
-                    $out['errors'][] = "{$where}: NatGeo '{$text}' harus Pre-A1, A1, A2, B1 atau B2.";
+                    $category = collect(Level::cases())->first(fn (Level $l) => strcasecmp($l->value, $norm) === 0);
+                    $out['errors'][] = $category
+                        ? "{$where}: NatGeo '{$text}' harus berupa anak level, mis. ".implode(', ', $category->subLevels()).'.'
+                        : "{$where}: NatGeo '{$text}' harus salah satu dari ".implode(', ', Level::subValues()).'.';
 
                     continue;
                 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fixture from '../../../tests/fixtures/cefr-parity.json';
 import type { ScoringConfig, Scores } from './cefr';
-import { calculate, parseScore, reportComment } from './cefr';
+import { calculate, parseScore, reportComment, withName } from './cefr';
 
 type Case = {
     name: string;
@@ -65,6 +65,14 @@ describe('reportComment', () => {
         ).toBe(
             'Kevin Wijaya can understand. Strongest skill this term: Reading.',
         );
-        expect(reportComment(r, 'Kevin', 'Great job!', {})).toBe('Great job!');
+        expect(reportComment(r, 'Kevin', 'Great job!', {})).toBe(
+            'Kevin great job!',
+        );
     });
+
+    for (const c of fixture.teacher_comments) {
+        it(`teacher comment: ${c.name}`, () => {
+            expect(withName(c.student, c.comment)).toBe(c.expected);
+        });
+    }
 });

@@ -5,7 +5,7 @@ import { createApp, h } from 'vue';
 import '../css/app.css';
 import { reportClientError } from '@/lib/clientErrors';
 
-const appName = import.meta.env.VITE_APP_NAME || 'ICP CEFR Report';
+const appName = import.meta.env.VITE_APP_NAME || 'ICP Report';
 
 createInertiaApp({
     title: (title) => (title ? `${title} • ${appName}` : appName),
